@@ -1,0 +1,13 @@
+################
+# Certains individus ont des valeurs extrêmes à T0, l'objectif serait de les détecter
+# Ensuite, il faudra trouver une façon de les gérer (régressions ?)
+################
+
+# étape 1 : récupérons seulement les valeurs de T0
+## nous n'avons pas besoin des identifiants ou dur groupe pour les valeurs de T0
+## en effet, T0 se situe avant expérience, il n'y a donc pas de différence entre les individus.
+## Ils proviennent tous de la même population de départ.
+physio_T0<-data_physio[,5:21]
+
+# étape 2 : retirons les individus n'ayant aucun relevé
+physio_T0<-physio_T0[apply(is.na(physio_T0),1,sum)==0,]

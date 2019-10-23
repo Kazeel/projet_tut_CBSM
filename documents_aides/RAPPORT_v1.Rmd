@@ -1,0 +1,1475 @@
+---
+title: "Effets de l'intervention CBSM sur des patients atteints de maladies cardio-vasculaires"
+author: "Cazeel Aimé"
+date: "29 juillet 2019"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 2
+    number_sections: true
+    df_print: kable
+    keep_tex: true
+    fig_caption: true
+    
+    includes:
+      before_body: title.sty
+  
+  html_document:
+    df_print: paged
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE,results='asis',warning=FALSE)
+```
+
+```{r, echo=FALSE, include=FALSE}
+#Importation
+library(readxl)
+
+#Présentation
+library(data.table)
+library(dplyr)
+library(tidyr)
+library(knitr)
+library(kableExtra)
+
+library(magrittr)
+library(qwraps2)
+options(qwraps2_markup = "markdown")
+
+#traitement
+library("FactoMineR")
+library("factoextra")
+
+#nettoyage data
+library(broom)
+
+```
+
+```{r, echo=FALSE, include=FALSE}
+#IMPORTATION
+## Listes
+liste_CBSM <- read_excel("CBSM cardio-data/Autre/COORDONNEES CARDIO.xlsx",sheet=1)
+liste_CONT <- read_excel("CBSM cardio-data/Autre/COORDONNEES CARDIO.xlsx",sheet=2)
+
+## Questionnaires
+data_T0_CBSM <- read_excel("./CBSM cardio-data/Fichiers_CBSM_questionnaires/CBSM_Cardio_réponses_questionnaire_CBSM/4_T0_CBSM.xlsx")
+data_T1_CBSM <- read_excel("./CBSM cardio-data/Fichiers_CBSM_questionnaires/CBSM_Cardio_réponses_questionnaire_CBSM/5_T1_CBSM.xlsx")
+
+data_T0_CONT <- read_excel("./CBSM cardio-data/Fichiers_CBSM_questionnaires/CBSM_Cardio_réponses_questionnaire_CONT/1_T0_CONT.xlsx")
+data_T1_CONT <- read_excel("./CBSM cardio-data/Fichiers_CBSM_questionnaires/CBSM_Cardio_réponses_questionnaire_CONT/2_T1_CONT.xlsx")
+
+## Physio
+data_physio <- read_excel("./CBSM cardio-data/Fichiers_CBSM_data_Excel/datas_physio_cbsm.xlsx",sheet=2)
+```
+
+```{r, echo=FALSE, include=FALSE}
+# PHYSIO
+##Renommage
+colnames(data_physio)[5:21]<-c("T0 Mean RR (ms)","T0 STD RR (ms)","T0 Mean HR (1/min)","T0 STD HR (1/min)","T0 RMSSD (ms)",
+                                     "T0 VLF (ms^2)","T0 LF (ms^2)","T0 HF (ms^2)","T0 VLF (%)","T0 LF (%)","T0 HF (%)","T0 LF (n,u,)",           
+                                     "T0 HF (n,u,)","T0 Total power (ms^2)","T0 LF/HF ratio","T0 EDR (Hz)","T0 Fréquence Respiratoire")
+
+colnames(data_physio)[22:40]<-c("Espace_1","Espace_2","T1 Mean RR (ms)","T1 STD RR (ms)","T1 Mean HR (1/min)","T1 STD HR (1/min)","T1 RMSSD (ms)",
+                                     "T1 VLF (ms^2)","T1 LF (ms^2)","T1 HF (ms^2)","T1 VLF (%)","T1 LF (%)","T1 HF (%)","T1 LF (n,u,)",           
+                                     "T1 HF (n,u,)","T1 Total power (ms^2)","T1 LF/HF ratio","T1 EDR (Hz)","T1 Fréquence Respiratoire")
+
+colnames(data_physio)[41:57]<-c("T2 Mean RR (ms)","T2 STD RR (ms)","T2 Mean HR (1/min)","T2 STD HR (1/min)","T2 RMSSD (ms)",
+                                     "T2 VLF (ms^2)","T2 LF (ms^2)","T2 HF (ms^2)","T2 VLF (%)","T2 LF (%)","T2 HF (%)","T2 LF (n,u,)",           
+                                     "T2 HF (n,u,)","T2 Total power (ms^2)","T2 LF/HF ratio","T2 EDR (Hz)","T2 Fréquence Respiratoire")
+
+## CODE
+#Formatage code anonymat
+#Correction des mauvais code anonymat
+data_physio[(data_physio[,c("Code anonymat")]=="BAJA3868")&!is.na(data_physio[,c("Code anonymat")]),c("Code anonymat")]<-"BEJA3868"
+data_physio[(data_physio[,c("Code anonymat")]=="YVJE3855")&!is.na(data_physio[,c("Code anonymat")]),c("Code anonymat")]<-"YVJO3855"
+
+data_physio[(data_physio[,c("Code anonymat")]=="CEJE3851")&!is.na(data_physio[,c("Code anonymat")]),c(5:21)]<-data_physio[(data_physio[,c("Code anonymat")]=="CEJO3851")&!is.na(data_physio[,c("Code anonymat")]),c(5:21)]
+data_physio<-data_physio[-which(data_physio[,c("Code anonymat")]=="CEJO3851"),]
+
+data_physio[(data_physio[,c("Code anonymat")]=="RIGI3861")&!is.na(data_physio[,c("Code anonymat")]),c(24:40)]<-data_physio[(data_physio[,c("Code anonymat")]=="RIJI3861")&!is.na(data_physio[,c("Code anonymat")]),c(5:21)]
+data_physio<-data_physio[-which(data_physio[,c("Code anonymat")]=="RIJI3861"),]
+
+#substract people with no Token AND no code
+data_physio<-data_physio[!is.na(data_physio[,"Token"])&!is.na(data_physio[,"Code anonymat"]),]
+
+#retrait des 2 colonnes vides
+data_physio<-data_physio[,-c(22,23)]
+
+#↔substract doublon
+data_physio<-data_physio[!((data_physio[,c("Code anonymat")]=="JEMA5165")&!is.na(data_physio[,c("Code anonymat")])&(data_physio[,"Groupe"]=="CONT")),]
+
+data_physio<-data_physio[,-c(39:55)]
+
+## NA
+taux_reponse<-function(x){
+  t<-apply(x,2,is.na)
+  t_ind<-apply(t,1,sum)
+  t_var<-apply(t,2,sum)
+  return(list("Taux_individu"=t_ind/ncol(x),"Taux_variable"=t_var/nrow(x)))
+}
+
+seuil_na<-0.80
+
+tempo<-taux_reponse(data_physio)
+
+#PHYSIO T0
+physio_T0<-data_physio[taux_reponse(data_physio[,1:21])[[1]]==0,1:21]
+
+ext_rmssd<-mean(physio_T0$`T0 RMSSD (ms)`)+c(-2*sd(physio_T0$`T0 RMSSD (ms)`),2*sd(physio_T0$`T0 RMSSD (ms)`))
+physio_T0<-physio_T0[physio_T0$`T0 RMSSD (ms)`<=ext_rmssd[2],]
+
+ext_rmssd<-mean(physio_T0$`T0 HF (ms^2)`)+c(-2*sd(physio_T0$`T0 HF (ms^2)`),2*sd(physio_T0$`T0 HF (ms^2)`))
+physio_T0<-physio_T0[physio_T0$`T0 HF (ms^2)`<=ext_rmssd[2],]
+
+physio_T0<-physio_T0[,c(1:4,9,11,12,16,17,19)]
+
+#PHYSIO T1
+physio_T1<-data_physio[taux_reponse(data_physio[,c(1:4,26,28,29,33,34,36)])[[1]]==0,c(1:4,26,28,29,33,34,36)]
+
+ext_rmssd<-mean(physio_T1$`T1 RMSSD (ms)`)+c(-2*sd(physio_T1$`T1 RMSSD (ms)`),2*sd(physio_T1$`T1 RMSSD (ms)`))
+physio_T1<-physio_T1[physio_T1$`T1 RMSSD (ms)`<=ext_rmssd[2],]
+
+ext_rmssd<-mean(physio_T1$`T1 HF (ms^2)`)+c(-2*sd(physio_T1$`T1 HF (ms^2)`),2*sd(physio_T1$`T1 HF (ms^2)`))
+physio_T1<-physio_T1[physio_T1$`T1 HF (ms^2)`<=ext_rmssd[2],]
+
+#PHYSIO T0 T1
+physio_T0_T1<-data_physio[taux_reponse(data_physio[,c(1:4,9,11,12,16,17,19,26,28,29,33,34,36)])[[1]]==0,c(1:4,9,11,12,16,17,19,26,28,29,33,34,36)]
+
+ext_rmssd<-mean(physio_T0_T1$`T0 RMSSD (ms)`)+c(-2*sd(physio_T0_T1$`T0 RMSSD (ms)`),2*sd(physio_T0_T1$`T0 RMSSD (ms)`))
+physio_T0_T1<-physio_T0_T1[physio_T0_T1$`T0 RMSSD (ms)`<=ext_rmssd[2],]
+ext_rmssd<-mean(physio_T0_T1$`T1 RMSSD (ms)`)+c(-2*sd(physio_T0_T1$`T1 RMSSD (ms)`),2*sd(physio_T0_T1$`T1 RMSSD (ms)`))
+physio_T0_T1<-physio_T0_T1[physio_T0_T1$`T1 RMSSD (ms)`<=ext_rmssd[2],]
+
+ext_rmssd<-mean(physio_T0_T1$`T0 HF (ms^2)`)+c(-2*sd(physio_T0_T1$`T0 HF (ms^2)`),2*sd(physio_T0_T1$`T0 HF (ms^2)`))
+physio_T0_T1<-physio_T0_T1[physio_T0_T1$`T0 HF (ms^2)`<=ext_rmssd[2],]
+ext_rmssd<-mean(physio_T0_T1$`T1 HF (ms^2)`)+c(-2*sd(physio_T0_T1$`T1 HF (ms^2)`),2*sd(physio_T0_T1$`T1 HF (ms^2)`))
+physio_T0_T1<-physio_T0_T1[physio_T0_T1$`T1 HF (ms^2)`<=ext_rmssd[2],]
+
+rm("data_physio")
+
+physio_T0_T1<-physio_T0_T1[order(physio_T0_T1$`Code anonymat`),]
+physio_T0_T1<-physio_T0_T1[-which(physio_T0_T1$`Code anonymat`=="ANBE3855"&physio_T0_T1$Groupe=="CONT"),]
+```
+
+```{r, echo=FALSE, include=FALSE}
+##################################################################################
+# liste_CBSM
+## CODE
+liste_CBSM[,"Code identification"]<-toupper(gsub(" ","",liste_CBSM$`Code identification`))
+liste_CBSM<-liste_CBSM[order(liste_CBSM$`Code identification`),]
+
+liste_CONT[,"Code identification"]<-toupper(gsub(" ","",liste_CONT$`Code identification`))
+liste_CONT<-liste_CONT[order(liste_CONT$`Code identification`),]
+```
+
+```{r, echo=FALSE, include=FALSE}
+####################################################################################
+# QUES
+
+##Renommage
+T0_colnames<-c("ID_reponse","Date_Soumission","Derniere_page","Langue_depart","Tete_serie?","Token","Date_lancement","Date_modif",
+                          "Consentement","Mesure_physio?","Code_Anonymat","Age","Genre","Taille","Poids","Ethnie","Ethnie_Autre","Etat_civil",
+                          "Suivi_psy","Enfants?","Nb_enfants","Statut_pro","Statut_pro_autre","Arret_travail?","Arret_Trav_comb","Reprise?",
+                          "Niveau_etude","Pathologie","Hypertension?","Autre_maladie?","Autre_maladie","medicament?","Tabac?","Cannabis?",
+                          "Consommation_alcool","Activite_physique?","Activite_physique","Activite_physique_par_semaine","Signes_cliniques_actuels",
+                          "Signes_cliniques_autres",
+                          "Motivation_pratique_regu_stress","Nb_derangement_dernier_mois","Nb_controle_vie_dernier_mois",
+                          "Nb_stress_nerveux_dernier_mois","Nb_succes_petit_prob_dernier_mois","Nb_succes_changement_important_dernier_mois",
+                          "Nb_confiance_prob_perso_dernier_mois","Nb_comme_voulu_dernier_mois","Nb_pas_assumer_mois_dernier",
+                          "Nb_maitrise_enervement_mois_dernier","Nb_domine_situtation_dernier_mois","Nb_irrite_controle_dernier_mois",
+                          "Nb_penser_choses_a_bien_dernier_mois",
+                          "Nb_controle_temps_dernier_mois","Nb_diff_accumule_dernier_mois","Niveau_stress","Lorsque_event_stress_change_idee",
+                          "Lorsque_event_stress_ligne_action","Lorsque_event_stress_pas_reel","Lorsque_event_stress_alcool",
+                          "Lorsque_event_stress_soutient_emotion","Lorsque_event_stress_renonce_resoudre","Lorsque_event_stress_religion",
+                          "Lorsque_event_stress_accepte_realite","Lorsque_event_stress_evacue_parle","Lorsque_event_stress_conseil_personne",
+                          "Lorsque_event_stress_voir_jour_positif","Lorsque_event_stress_critique_soi","Lorsque_event_stress_strategie",
+                          "Lorsque_event_stress_recherche_soutien","Lorsque_event_stress_abandon",
+                          "Lorsque_event_stress_humour","Lorsque_event_stress_moins_penser","Lorsque_event_stress_exprime_negatif",
+                          "Lorsque_event_stress_conseil_faire","Lorsque_event_stress_effort_resoudre","Lorsque_event_stress_refus",
+                          "Lorsque_event_stress_consome_alcool","Lorsque_event_stress_vivre_situation","Lorsque_event_stress_planifie",
+                          "Lorsque_event_stress_reproche","Lorsque_event_stress_aspect_positif","Lorsque_event_stress_prier",
+                          "Lorsque_event_stress_amuse","Quand_colere__maitrise_humeur","Quand_colere_respire",
+                          "Quand_colere_patient","Quand_colere_calme_vite","Quand_colere_controle_exprime_colere",
+                          "Quand_colere_calmer_detendre","Quand_colere_garde_calme","Quand_colere_apaiser","Quand_colere_controle_comportement",
+                          "Quand_colere_retrouver_calme","Quand_colere_controle_patience","Quand_colere_modere_colere","Quand_colere_tolerant",
+                          "Quand_colere_relaxation","Quand_colere_controle_sentiment_colere","Quand_colere_detendre","Capacites_resoudre_quotidien",
+                          "Efficace_probleme_cardiaque","Analyse_comprendre_deprime","Pourquoi_reagis_toujours","Partir_seul_penser","Ecrire_pensee",
+                          "Penser_souhaite_passe_mieux","Pourquoi_pas_les_autres","Analyse_perso_deprime","Aller_seul_ressentir","Fait_pour_meriter",
+                          "Pourquoi_pas_mieux","Note_frequence_medicament","Penser_sante","Sante_limite_effort_physique","Sante_limite_monter_etage",
+                          "Etat_physique_moins_choses_4_semaines","Etat_physique_limite_4_semaines","Etat_emotionnel_moins_choses_4_semaines",
+                          "Etat_emotionnel_difficile_faire_4_semaines",
+                          "Douleurs_physiques_limite_travail_domestique_4_semaines","Calme_detendu_4_semaines","Deborde_energie_4_semaines",
+                          "Triste_4_semaines","Physique_emotion_genant_4_semaines","1-A_Senti_tendu_enerve","2-D_Prend_plaisir_comme_avant",
+                          "3-A_Sensation_peur","4-D_Vois_bon_cote","5-A_Souci","6-D_bonne_humeur","7-A_rester_assis","8-D_fonctionner_ralenti",
+                          "9-A_sensation_peur","10-D_Pas_interet_propre_apparence","11-A_bougeotte","12-D_Rejouis","13-A_panique","14-D_plaisir")
+
+T1_colnames<-c("ID_reponse","Date_Soumission","Derniere_page","Langue_depart","Tete_serie?","Token","Date_lancement","Date_modif",
+                          "Code_Anonymat","Age","Genre","Suivi_psy","Arret_travail?","Arret_Trav_comb","Reprise?","medicament?","Tabac?","Cannabis?",
+                          "Consommation_alcool","Activite_physique?","Activite_physique","Activite_physique_par_semaine","Signes_cliniques_actuels",
+                          "Signes_cliniques_autres","Nb_derangement_dernier_mois","Nb_controle_vie_dernier_mois",
+                          "Nb_stress_nerveux_dernier_mois","Nb_succes_petit_prob_dernier_mois","Nb_succes_changement_important_dernier_mois",
+                          "Nb_confiance_prob_perso_dernier_mois","Nb_comme_voulu_dernier_mois","Nb_pas_assumer_mois_dernier",
+                          "Nb_maitrise_enervement_mois_dernier","Nb_domine_situtation_dernier_mois","Nb_irrite_controle_dernier_mois",
+                          "Nb_penser_choses_a_bien_dernier_mois",
+                          "Nb_controle_temps_dernier_mois","Nb_diff_accumule_dernier_mois","Niveau_stress","Lorsque_event_stress_change_idee",
+                          "Lorsque_event_stress_ligne_action","Lorsque_event_stress_pas_reel","Lorsque_event_stress_alcool",
+                          "Lorsque_event_stress_soutient_emotion","Lorsque_event_stress_renonce_resoudre","Lorsque_event_stress_religion",
+                          "Lorsque_event_stress_accepte_realite","Lorsque_event_stress_evacue_parle","Lorsque_event_stress_conseil_personne",
+                          "Lorsque_event_stress_voir_jour_positif","Lorsque_event_stress_critique_soi","Lorsque_event_stress_strategie",
+                          "Lorsque_event_stress_recherche_soutien","Lorsque_event_stress_abandon",
+                          "Lorsque_event_stress_humour","Lorsque_event_stress_moins_penser","Lorsque_event_stress_exprime_negatif",
+                          "Lorsque_event_stress_conseil_faire","Lorsque_event_stress_effort_resoudre","Lorsque_event_stress_refus",
+                          "Lorsque_event_stress_consome_alcool","Lorsque_event_stress_vivre_situation","Lorsque_event_stress_planifie",
+                          "Lorsque_event_stress_reproche","Lorsque_event_stress_aspect_positif","Lorsque_event_stress_prier",
+                          "Lorsque_event_stress_amuse","Quand_colere__maitrise_humeur","Quand_colere_respire",
+                          "Quand_colere_patient","Quand_colere_calme_vite","Quand_colere_controle_exprime_colere",
+                          "Quand_colere_calmer_detendre","Quand_colere_garde_calme","Quand_colere_apaiser", "Quand_colere_maitrise_comportement",
+                          "Quand_colere_efforce_calme","Quand_colere_controle_plus_perdre_patience","Quand_colere_modere_colere",
+                          "Quand_colere_tolerant","Quand_colere_relaxation","Quand_colere_controle_sentiment_colere","Quand_colere_detendre",
+                          "Capacites_resoudre_quotidien",
+                          "Efficace_probleme_cardiaque","Analyse_comprendre_deprime","Pourquoi_reagis_toujours","Partir_seul_penser","Ecrire_pensee",
+                          "Penser_souhaite_passe_mieux","Pourquoi_pas_les_autres","Analyse_perso_deprime","Aller_seul_ressentir","Fait_pour_meriter",
+                          "Pourquoi_pas_mieux","Note_frequence_medicament","Penser_sante","Sante_limite_effort_physique","Sante_limite_monter_etage",
+                          "Etat_physique_moins_choses_4_semaines","Etat_physique_limite_4_semaines","Etat_emotionnel_moins_choses_4_semaines",
+                          "Etat_emotionnel_difficile_faire_4_semaines",
+                          "Douleurs_physiques_limite_travail_domestique_4_semaines","Calme_detendu_4_semaines","Deborde_energie_4_semaines",
+                          "Triste_4_semaines","Physique_emotion_genant_4_semaines","1-A_Senti_tendu_enerve","2-D_Prend_plaisir_comme_avant",
+                          "3-A_Sensation_peur","4-D_Vois_bon_cote","5-A_Souci","6-D_bonne_humeur","7-A_rester_assis","8-D_fonctionner_ralenti",
+                          "9-A_sensation_peur","10-D_Pas_interet_propre_apparence","11-A_bougeotte","12-D_Rejouis","13-A_panique","14-D_plaisir")
+
+colnames(data_T0_CBSM)<-T0_colnames
+colnames(data_T0_CONT)<-T0_colnames
+
+colnames(data_T1_CBSM)<-c(T1_colnames[1:24],"Motivation_continuer_CBSM","Assiduite",T1_colnames[25:122])
+colnames(data_T1_CONT)<-T1_colnames
+
+
+#fusion
+data_T0_CBSM<-cbind(data_T0_CBSM,"Groupe"=rep("CBSM",nrow(data_T0_CBSM)))
+data_T0_CONT<-cbind(data_T0_CONT,"Groupe"=rep("CONT",nrow(data_T0_CONT)))
+data_T1_CBSM<-cbind(data_T1_CBSM,"Groupe"=rep("CBSM",nrow(data_T1_CBSM)))
+data_T1_CONT<-cbind(data_T1_CONT,"Groupe"=rep("CONT",nrow(data_T1_CONT)))
+
+data_T1_CONT[,"Motivation_continuer_CBSM"]<-"0"
+data_T1_CONT[,"Assiduite"]<-"0"
+
+data_T0_ques<-rbind(data_T0_CONT,data_T0_CBSM)
+data_T1_ques<-rbind(data_T1_CONT,data_T1_CBSM)
+
+rm(list=c("data_T0_CBSM","data_T0_CONT","data_T1_CBSM","data_T1_CONT"))
+
+#resolve people with same token in data_T0_ques
+
+data_T0_ques[which(data_T0_ques[,"Token"]==1001),"Token"]<-NA
+data_T0_ques[which(data_T0_ques[,"Token"]==1083),"Token"]<-NA
+data_T0_ques[which(data_T0_ques[,"Token"]==1085),"Token"]<-NA
+
+
+data_T0_ques[which(data_T0_ques[,"Code_Anonymat"]=="ELMI3861"),"Token"]<-1001
+data_T0_ques[which(data_T0_ques[,"Code_Anonymat"]=="PAAN9958"),"Token"]<-1020
+data_T0_ques[which(data_T0_ques[,"Code_Anonymat"]=="LIJE9366"),"Token"]<-1027
+data_T0_ques[which(data_T0_ques[,"Code_Anonymat"]=="VIJO3843"),"Token"]<-1023
+data_T0_ques[which(data_T0_ques[,"Code_Anonymat"]=="PAAN8951"),"Token"]<-1028
+data_T0_ques[which(data_T0_ques[,"Code_Anonymat"]=="SIJE0650"),"Token"]<-1033
+data_T0_ques[which(data_T0_ques[,"Code_Anonymat"]=="GIMA2757"),"Token"]<-1034
+data_T0_ques[which(data_T0_ques[,"Code_Anonymat"]=="MALE3862"),"Token"]<-1031
+data_T0_ques[which(data_T0_ques[,"Code_Anonymat"]=="MARO7465"),"Token"]<-1032
+data_T0_ques[which(data_T0_ques[,"Code_Anonymat"]=="BLRO8159"),"Token"]<-1036
+data_T0_ques[which(data_T0_ques[,"Code_Anonymat"]=="PAAN3865"),"Token"]<-1083
+data_T0_ques[which(data_T0_ques[,"Code_Anonymat"]=="VIJO9958"),"Token"]<-1085
+data_T0_ques[which(data_T0_ques[,"Code_Anonymat"]=="PAAN3865"),"Token"]<-2043
+data_T0_ques[which(data_T0_ques[,"Code_Anonymat"]=="VIJO9958"),"Token"]<-2045
+data_T0_ques[which(data_T0_ques[,"Code_Anonymat"]=="YVJE3855"),"Code_Anonymat"]<-"YVJO3855"
+data_T0_ques[which(data_T0_ques[,"Code_Anonymat"]=="YVJO3855"),"Token"]<-1026
+data_T0_ques[which(data_T0_ques[,"Code_Anonymat"]=="COJC3878"),"Code_Anonymat"]<-"COJE3878"
+data_T0_ques[which(data_T0_ques[,"Code_Anonymat"]=="COJE3878"),"Token"]<-1024
+data_T0_ques[which(data_T0_ques[,"Code_Anonymat"]=="SULO69"),"Code_Anonymat"]<-"SULO6954"
+data_T0_ques[which(data_T0_ques[,"Code_Anonymat"]=="SULO6954"),"Token"]<-1021
+data_T0_ques[which(data_T0_ques[,"Code_Anonymat"]=="FERFRA9453"),"Code_Anonymat"]<-"FEFR9453"
+
+data_T1_ques[which(data_T1_ques[,"Code_Anonymat"]=="YVJE3855"),"Code_Anonymat"]<-"YVJO3855"
+
+```
+
+```{r, echo=FALSE, include=FALSE}
+
+#Formatage code anonymat
+data_T0_ques[,"Code_Anonymat"]<-toupper(gsub(" ","",data_T0_ques[,"Code_Anonymat"]))
+data_T1_ques[,"Code_Anonymat"]<-toupper(gsub(" ","",data_T1_ques[,"Code_Anonymat"]))
+
+#kill doublon
+data_T0_ques<-data_T0_ques[-which(data_T0_ques[,"Code_Anonymat"]=="VIJO9958"&is.na(data_T0_ques[,"Tete_serie?"])),]
+
+#Enfants?
+data_T0_ques$Nb_enfants[data_T0_ques[,"Enfants?"]=="Non"]<-0
+#PAS DE ENFANTS DANS data_T1_CBSM
+#PAS DE ENFANTS DANS data_T1_CONT
+#PAS DE ENFANTS DANS data_T2_CBSM
+#PAS DE ENFANTS DANS data_T2_CONT
+
+#Arret_travail?
+data_T0_ques$Arret_Trav_comb[data_T0_ques[,"Arret_travail?"]=="Non"]<-"0 mois"
+data_T1_ques$Arret_Trav_comb[data_T1_ques[,"Arret_travail?"]=="Non"]<-"0 mois"
+
+#Ethnie
+data_T0_ques[data_T0_ques$Ethnie_Autre%in%c("EUROPEENNE","française","Européenne","Française","EUROPE","FRANCAIS","européen","Europe","Europeen","SLAVE","europeen","européenne"),"Ethnie"]<-"Caucasienne"
+#Statut pro
+data_T0_ques[data_T0_ques$Statut_pro_autre%in%c("TNS GERANT SOCIETE","COMMERCANT","ARTISAN","Artisan"),"Statut_pro"]<-"Artisans, commerçants et chefs d’entreprise"
+
+data_T0_ques[data_T0_ques$Statut_pro_autre%in%c("enseignante"),"Statut_pro"]<-"Emploi en CDI ou fonctionnaire"
+
+data_T0_ques[,"Niveau_stress"]<-as.numeric(substr(data_T0_ques$Niveau_stress,1,2))
+data_T1_ques[,"Niveau_stress"]<-as.numeric(substr(data_T1_ques$Niveau_stress,1,2))
+
+data_T0_ques[,"Motivation_pratique_regu_stress"]<-as.numeric(substr(data_T0_ques$Motivation_pratique_regu_stress,1,2))
+data_T1_ques<-data_T1_ques[!((data_T1_ques$ID_reponse==7)&(data_T1_ques$Code_Anonymat=="ANBE3855")),]
+
+data_T0_ques[data_T0_ques$`Reprise?`=="N/A"&!is.na(data_T0_ques$`Reprise?`),"Reprise?"]<-"Pas_concerne"
+
+data_T0_ques[!is.na(data_T0_ques$Pathologie),"Pathologie"]<-c("Infarctus + stent(s)","Infarctus + stent(s)","Infarctus + stent(s)","Stent(s)","Maladie coronaire","Infarctus","Stent(s)","Infarctus","Infractus","Infarctus + stent(s)","Infarctus + stent(s)","Infarctus","Infarctus + stent(s)","Insuffisance cardiaque","Infarctus + stent(s)" ,"Infarctus" ,"Infarctus" ,"Autre","Infarctus + stent(s)","Stent(s)" ,"Infarctus","Infarctus + stent(s)","Infarctus + stent(s)","Stent(s)","Infarctus + stent(s)","Infarctus","Infarctus + stent(s)","Infarctus + stent(s)","Infarctus + stent(s)","Stent(s)","Infarctus + stent(s)","Infarctus","Infarctus","Infarctus + stent(s)","Infarctus + stent(s)","Stent(s)","Maladie coronaire","Infarctus + stent(s)","Infarctus + stent(s)","Infarctus + stent(s)","Infarctus","Infarctus + stent(s)","Infarctus + stent(s)","Infarctus","Infarctus","Infarctus + stent(s)","Autre","Infarctus + stent(s)","Insuffisance cardiaque","Infarctus + stent(s)","Stent(s)","Infarctus + stent(s)","Infarctus","Insuffisance cardiaque","Infarctus + stent(s)","Stent(s)","Stent(s)","Infarctus + stent(s)","Infarctus + stent(s)","Autre","Infarctus + stent(s)","Pontage","Infarctus + stent(s)","Autre","Pontage","Infarctus","Insuffisance cardiaque","Infarctus","Autre","Maladie coronaire","Infarctus","Infarctus + stent(s)","Insuffisance cardiaque","Infarctus","Autre","Infarctus","Stent(s)","Infarctus + stent(s)","Stent(s)","Autre"  ,"Infarctus + stent(s)","Infarctus + stent(s)","Infarctus + stent(s)"  ,"Infarctus"  ,"Infarctus + stent(s)","Maladie coronaire","Infarctus + stent(s)" ,"Infarctus","Pontage","Infarctus + stent(s)","Stent(s)","Infarctus + stent(s)","Stent(s)"  )
+
+data_T0_ques[!is.na(data_T0_ques$Activite_physique),"Activite_physique"]<-c("Velo","Natation","Velo","Velo","Fitness","Velo","Fitness","Marche","Fitness","Velo d'appartement","Velo d'appartement","Velo","Marche","Velo","Velo d'appartement","Rameur","Velo","Marche","Velo","Velo d’appartement","Marche","Velo","Marche","Fitness","Fitness","Velo","Velo d’appartement", "Fitness","Marche","Marche","Marche","Fitness","Velo","Marche","Marche","Velo","Marche","Velo","Marche","Fitness","Marche","Velo","Velo","Marche","Velo","Marche","Marche","Marche","Marche","Autre","Velo d'appartement","Velo","Marche","Velo","Autre","Marche","Velo d'appartement","Autre","Velo","Marche","Velo","Marche","Autre")
+
+data_T0_ques<-data_T0_ques[taux_reponse(data_T0_ques)[[1]]<=0.60,]
+data_T0_ques[data_T0_ques$`Activite_physique?`=="Non","Activite_physique"]<-"Non_concerne"
+data_T0_ques[data_T0_ques$`Activite_physique?`=="Non","Activite_physique_par_semaine"]<-0
+
+data_T1_ques[!is.na(data_T1_ques$Activite_physique),"Activite_physique"]<-c("Marche","Fitness","Marche","Fitness","Velo d’appartement","Velo d’appartement","Autre","Velo" ,"Marche"  ,"Velo","Autre","Marche" ,"Fitness","Marche" ,"Marche","Marche","Marche","Velo d’appartement","Velo d’appartement","Marche","Marche","Marche","Fitness","Fitness","Velo" ,"Marche","Velo d’appartement", "Marche","Velo","velo","Marche","Marche","Marche","Marche","Velo d’appartement","Marche","Marche" ,"Velo","Velo d’appartement","Marche","Marche","Velo")
+
+data_T1_ques<-data_T1_ques[taux_reponse(data_T1_ques)[[1]]<=0.60,]
+data_T1_ques[data_T1_ques$`Reprise?`=="N/A"&!is.na(data_T1_ques$`Reprise?`),"Reprise?"]<-"Pas_concerne"
+data_T1_ques[data_T1_ques$`Activite_physique?`=="Non","Activite_physique"]<-"Non_concerne"
+data_T1_ques[data_T1_ques$`Activite_physique?`=="Non","Activite_physique_par_semaine"]<-0
+
+
+
+####################
+##SCORE
+PSS_notation<-function(vector,inv=FALSE){
+  if(inv==FALSE){
+    sauv<-sapply(X=vector,FUN = function(x){switch(x,"Jamais"= 0,"Presque jamais"= 1,"Rarement"= 2,"Assez souvent"= 3,4)})
+  }
+  if(inv==TRUE){
+    sauv<-sapply(X=vector,FUN = function(x){switch(x,"Jamais"= 4,"Presque jamais"= 3,"Rarement"= 2,"Assez souvent"= 1,0)})
+  }
+  return(unlist(sauv))
+}
+tempo<-mapply(PSS_notation,data_T0_ques[,42:55],c(FALSE,FALSE,FALSE,TRUE,TRUE,TRUE,TRUE,FALSE,TRUE,TRUE,FALSE,FALSE,TRUE,FALSE))
+tempo2<-data.frame(tempo)
+data_T0_ques[,"PSS_score"]<-unname(apply(tempo2,MARGIN = 1,FUN = sum))
+data_T0_ques<-as.data.frame(data_T0_ques)
+
+tempo<-mapply(PSS_notation,data_T1_ques[,25:38],c(FALSE,FALSE,FALSE,TRUE,TRUE,TRUE,TRUE,FALSE,TRUE,TRUE,FALSE,FALSE,TRUE,FALSE))
+tempo2<-data.frame(tempo)
+data_T1_ques[,"PSS_score"]<-unname(apply(tempo2,MARGIN = 1,FUN = sum))
+data_T1_ques<-as.data.frame(data_T1_ques)
+
+# # # # #
+RRS_R_notation<-function(vector){
+  sauv<-sapply(X=vector,FUN = function(x){switch(x,"Presque jamais"= 1,"Parfois"= 2,"Souvent"= 3,"Presque toujours"=4)})
+  return(unlist(sauv))
+}
+tempo<-lapply(data_T0_ques[,103:112],RRS_R_notation)
+tempo2<-data.frame(tempo)
+data_T0_ques[,"RRS_R_score_Ressassement"]<-unname(apply(tempo2[,c(9,2,5,6,10)],MARGIN = 1,FUN = sum))
+data_T0_ques[,"RRS_R_score_Reflexion"]<-unname(apply(tempo2[,c(1,3,4,7,8)],MARGIN = 1,FUN = sum))
+
+tempo<-lapply(data_T1_ques[,86:95],RRS_R_notation)
+tempo2<-data.frame(tempo)
+data_T1_ques[,"RRS_R_score_Ressassement"]<-unname(apply(tempo2[,c(9,2,5,6,10)],MARGIN = 1,FUN = sum))
+data_T1_ques[,"RRS_R_score_Reflexion"]<-unname(apply(tempo2[,c(1,3,4,7,8)],MARGIN = 1,FUN = sum))
+
+# # # # # 
+HAD_notation<-function(vector){
+  sauv<-sapply(X=vector,FUN = function(x){substr(x,2,2)})
+  return(unlist(as.numeric(sauv)))
+}
+tempo<-lapply(data_T0_ques[,126:139],HAD_notation)
+tempo2<-data.frame(tempo)
+data_T0_ques[,"HADS_score_Anxiete"]<-unname(apply(tempo2[,c(1,3,5,7,9,11,13)],MARGIN = 1,FUN = sum))
+data_T0_ques[,"HADS_score_Depression"]<-unname(apply(tempo2[,c(2,4,6,8,10,12,14)],MARGIN = 1,FUN = sum))
+
+tempo<-lapply(data_T1_ques[,109:122],HAD_notation)
+tempo2<-data.frame(tempo)
+data_T1_ques[,"HADS_score_Anxiete"]<-unname(apply(tempo2[,c(1,3,5,7,9,11,13)],MARGIN = 1,FUN = sum))
+data_T1_ques[,"HADS_score_Depression"]<-unname(apply(tempo2[,c(2,4,6,8,10,12,14)],MARGIN = 1,FUN = sum))
+
+# # # # #
+COPE_notation<-function(vector){
+  sauv<-sapply(X=vector,FUN = function(x){switch(x,"Pas du tout"= 1,"Un peu"= 2,"Beaucoup"= 3,4)})
+  return(unlist(sauv))
+}
+tempo<-lapply(data_T0_ques[,57:84],COPE_notation)
+tempo2<-data.frame(tempo)
+data_T0_ques[,"COPE_coping_actif"]<-unname(apply(tempo2[,c(2,20)],MARGIN = 1,FUN = sum))
+data_T0_ques[,"COPE_plannification"]<-unname(apply(tempo2[,c(13,24)],MARGIN = 1,FUN = sum))
+data_T0_ques[,"COPE_soutien_instrumental"]<-unname(apply(tempo2[,c(10,19)],MARGIN = 1,FUN = sum))
+data_T0_ques[,"COPE_soutien_emotionnel"]<-unname(apply(tempo2[,c(5,14)],MARGIN = 1,FUN = sum))
+data_T0_ques[,"COPE_expression_des_sentiments"]<-unname(apply(tempo2[,c(9,18)],MARGIN = 1,FUN = sum))
+data_T0_ques[,"COPE_reinterpretation_positive"]<-unname(apply(tempo2[,c(11,26)],MARGIN = 1,FUN = sum))
+data_T0_ques[,"COPE_acceptation"]<-unname(apply(tempo2[,c(8,23)],MARGIN = 1,FUN = sum))
+data_T0_ques[,"COPE_deni"]<-unname(apply(tempo2[,c(3,21)],MARGIN = 1,FUN = sum))
+data_T0_ques[,"COPE_blame"]<-unname(apply(tempo2[,c(12,25)],MARGIN = 1,FUN = sum))
+data_T0_ques[,"COPE_humour"]<-unname(apply(tempo2[,c(16,28)],MARGIN = 1,FUN = sum))
+data_T0_ques[,"COPE_religion"]<-unname(apply(tempo2[,c(7,27)],MARGIN = 1,FUN = sum))
+data_T0_ques[,"COPE_distraction"]<-unname(apply(tempo2[,c(1,17)],MARGIN = 1,FUN = sum))
+data_T0_ques[,"COPE_utilisation_de_substance"]<-unname(apply(tempo2[,c(4,22)],MARGIN = 1,FUN = sum))
+data_T0_ques[,"COPE_desengagement"]<-unname(apply(tempo2[,c(6,15)],MARGIN = 1,FUN = sum))
+
+tempo<-lapply(data_T1_ques[,40:67],COPE_notation)
+tempo2<-data.frame(tempo)
+data_T1_ques[,"COPE_coping_actif"]<-unname(apply(tempo2[,c(2,20)],MARGIN = 1,FUN = sum))
+data_T1_ques[,"COPE_plannification"]<-unname(apply(tempo2[,c(13,24)],MARGIN = 1,FUN = sum))
+data_T1_ques[,"COPE_soutien_instrumental"]<-unname(apply(tempo2[,c(10,19)],MARGIN = 1,FUN = sum))
+data_T1_ques[,"COPE_soutien_emotionnel"]<-unname(apply(tempo2[,c(5,14)],MARGIN = 1,FUN = sum))
+data_T1_ques[,"COPE_expression_des_sentiments"]<-unname(apply(tempo2[,c(9,18)],MARGIN = 1,FUN = sum))
+data_T1_ques[,"COPE_reinterpretation_positive"]<-unname(apply(tempo2[,c(11,26)],MARGIN = 1,FUN = sum))
+data_T1_ques[,"COPE_acceptation"]<-unname(apply(tempo2[,c(8,23)],MARGIN = 1,FUN = sum))
+data_T1_ques[,"COPE_deni"]<-unname(apply(tempo2[,c(3,21)],MARGIN = 1,FUN = sum))
+data_T1_ques[,"COPE_blame"]<-unname(apply(tempo2[,c(12,25)],MARGIN = 1,FUN = sum))
+data_T1_ques[,"COPE_humour"]<-unname(apply(tempo2[,c(16,28)],MARGIN = 1,FUN = sum))
+data_T1_ques[,"COPE_religion"]<-unname(apply(tempo2[,c(7,27)],MARGIN = 1,FUN = sum))
+data_T1_ques[,"COPE_distraction"]<-unname(apply(tempo2[,c(1,17)],MARGIN = 1,FUN = sum))
+data_T1_ques[,"COPE_utilisation_de_substance"]<-unname(apply(tempo2[,c(4,22)],MARGIN = 1,FUN = sum))
+data_T1_ques[,"COPE_desengagement"]<-unname(apply(tempo2[,c(6,15)],MARGIN = 1,FUN = sum))
+
+####################
+data_T0_ques<-data_T0_ques[order(data_T0_ques$Code_Anonymat),]
+data_T1_ques<-data_T1_ques[order(data_T1_ques$Code_Anonymat),]
+####################
+
+data_T1_ques[!(data_T1_ques$Motivation_continuer_CBSM%in%c("0","1","2","3","4","5","6","7","8","9","groupe_CONT")),"Motivation_continuer_CBSM"]<-"10"
+data_T1_ques[data_T1_ques$Assiduite=="10 (Totalement assidu(e))","Assiduite"]<-"10"
+data_T1_ques[data_T1_ques$Assiduite=="0 (Pas du tout assidu(e))","Assiduite"]<-"0"
+
+
+rm(list=c("tempo","tempo2"))
+rm(list=c("ext_rmssd","seuil_na","T0_colnames","T1_colnames"))
+```
+
+```{r, echo=FALSE, include=FALSE}
+data_T0_ques<-data_T0_ques[-which((data_T0_ques$Code_Anonymat%in%names(which(table(data_T0_ques$Code_Anonymat)!=1)))&is.na(data_T0_ques$`Tete_serie?`)),]
+
+data_T1_ques<-data_T1_ques[-which((data_T1_ques$Code_Anonymat%in%names(which(table(data_T1_ques$Code_Anonymat)!=1)))&is.na(data_T1_ques$`Tete_serie?`)),]
+```
+
+```{r, echo=FALSE, include=FALSE}
+#ques T0
+ques_T0<-data_T0_ques[,-c(1:10,17,23,31,40,42:112,115:139)]
+rm("data_T0_ques")
+
+#ques T1
+ques_T1<-data_T1_ques[,-c(1:8,10,11,24:38,40:95,98:122)]
+rm("data_T1_ques")
+
+#PHYSIO T0 T1
+
+
+ques_T0_T1<-ques_T0[ques_T0$Code_Anonymat%in%intersect(ques_T0$Code_Anonymat,ques_T1$Code_Anonymat),]
+colnames(ques_T0_T1)[colnames(ques_T0_T1)%in%colnames(ques_T1)]<-paste0("T0_",colnames(ques_T0_T1)[colnames(ques_T0_T1)%in%colnames(ques_T1)])
+colnames(ques_T0_T1)[1]<-"Code_Anonymat"
+
+tempo<-ques_T1[ques_T1$Code_Anonymat%in%intersect(ques_T0$Code_Anonymat,ques_T1$Code_Anonymat),]
+colnames(tempo)[colnames(tempo)%in%colnames(ques_T0)]<-paste0("T1_",colnames(tempo)[colnames(tempo)%in%colnames(ques_T0)])
+colnames(tempo)[1]<-"Code_Anonymat"
+
+ques_T0_T1<-cbind(ques_T0_T1,tempo[,-1])
+rm("tempo")
+```
+
+```{r, echo=FALSE, include=FALSE}
+tempo1<-physio_T0_T1[physio_T0_T1$`Code anonymat`%in%intersect(physio_T0_T1$`Code anonymat`,ques_T0_T1$Code_Anonymat),]
+tempo2<-ques_T0_T1[ques_T0_T1$Code_Anonymat%in%intersect(physio_T0_T1$`Code anonymat`,ques_T0_T1$Code_Anonymat),]
+all_T0_T1<-cbind(tempo2,tempo1[,4:16])
+rm(list=c("tempo1","tempo2"))
+```
+
+```{r, echo=FALSE, include=FALSE}
+all_T0_T1[all_T0_T1$Groupe=="CBSM","Nb_seance"]<-as.numeric(apply(liste_CBSM[liste_CBSM$`Code identification`%in%all_T0_T1[all_T0_T1$Groupe=="CBSM","Code_Anonymat"],19:25]=="oui",1,sum))
+
+all_T0_T1[all_T0_T1$Groupe=="CONT","Nb_seance"]<-0
+
+all_T0_T1[,"progres_RMSSD"]<-as.factor(all_T0_T1$`T1 RMSSD (ms)`-all_T0_T1$`T0 RMSSD (ms)`>=0)
+all_T0_T1[,"progres_HF"]<-as.factor(all_T0_T1$`T1 HF (n,u,)`-all_T0_T1$`T0 HF (n,u,)`>=0)
+
+## ## ##
+
+all_T0_T1[,"Baisse_PSS_score"]<-as.factor(all_T0_T1[,"T1_PSS_score"]-all_T0_T1[,"T0_PSS_score"]<0)
+all_T0_T1[,"Baisse_RRS_R_score_Ressassement"]<-as.factor(all_T0_T1[,"T1_RRS_R_score_Ressassement"]-all_T0_T1[,"T0_RRS_R_score_Ressassement"]<0)
+all_T0_T1[,"Baisse_RRS_R_score_Reflexion"]<-as.factor(all_T0_T1[,"T1_RRS_R_score_Reflexion"]-all_T0_T1[,"T0_RRS_R_score_Reflexion"]<0)
+all_T0_T1[,"Baisse_HADS_score_Anxiete"]<-as.factor(all_T0_T1[,"T1_HADS_score_Anxiete"]-all_T0_T1[,"T0_HADS_score_Anxiete"]<0)
+all_T0_T1[,"Baisse_HADS_score_Depression"]<-as.factor(all_T0_T1[,"T1_HADS_score_Depression"]-all_T0_T1[,"T0_HADS_score_Depression"]<0)
+all_T0_T1[,"Baisse_COPE_coping_actif"]<-as.factor(all_T0_T1[,"T1_COPE_coping_actif"]-all_T0_T1[,"T0_COPE_coping_actif"]<0)
+all_T0_T1[,"Baisse_COPE_plannification"]<-as.factor(all_T0_T1[,"T1_COPE_plannification"]-all_T0_T1[,"T0_COPE_plannification"]<0)
+all_T0_T1[,"Baisse_COPE_soutien_instrumental"]<-as.factor(all_T0_T1[,"T1_COPE_soutien_instrumental"]-all_T0_T1[,"T0_COPE_soutien_instrumental"]<0)
+all_T0_T1[,"Baisse_COPE_soutien_emotionnel"]<-as.factor(all_T0_T1[,"T1_COPE_soutien_emotionnel"]-all_T0_T1[,"T0_COPE_soutien_emotionnel"]<0)
+all_T0_T1[,"Baisse_COPE_expression_des_sentiments"]<-as.factor(all_T0_T1[,"T1_COPE_expression_des_sentiments"]-all_T0_T1[,"T0_COPE_expression_des_sentiments"]<0)
+all_T0_T1[,"Baisse_COPE_reinterpretation_positive"]<-as.factor(all_T0_T1[,"T1_COPE_reinterpretation_positive"]-all_T0_T1[,"T0_COPE_reinterpretation_positive"]<0)
+all_T0_T1[,"Baisse_COPE_acceptation"]<-as.factor(all_T0_T1[,"T1_COPE_acceptation"]-all_T0_T1[,"T0_COPE_acceptation"]<0)
+all_T0_T1[,"Baisse_COPE_deni"]<-as.factor(all_T0_T1[,"T1_COPE_deni"]-all_T0_T1[,"T0_COPE_deni"]<0)
+all_T0_T1[,"Baisse_COPE_blame"]<-as.factor(all_T0_T1[,"T1_COPE_blame"]-all_T0_T1[,"T0_COPE_blame"]<0)
+all_T0_T1[,"Baisse_COPE_humour"]<-as.factor(all_T0_T1[,"T1_COPE_humour"]-all_T0_T1[,"T0_COPE_humour"]<0)
+all_T0_T1[,"Baisse_COPE_religion"]<-as.factor(all_T0_T1[,"T1_COPE_religion"]-all_T0_T1[,"T0_COPE_religion"]<0)
+all_T0_T1[,"Baisse_COPE_distraction"]<-as.factor(all_T0_T1[,"T1_COPE_distraction"]-all_T0_T1[,"T0_COPE_distraction"]<0)
+all_T0_T1[,"Baisse_COPE_utilisation_de_substance"]<-as.factor(all_T0_T1[,"T1_COPE_utilisation_de_substance"]-all_T0_T1[,"T0_COPE_utilisation_de_substance"]<0)
+all_T0_T1[,"Baisse_COPE_desengagement"]<-as.factor(all_T0_T1[,"T1_COPE_desengagement"]-all_T0_T1[,"T0_COPE_desengagement"]<0)
+
+clean_T0_T1<-all_T0_T1[,-c(30:49,65,86)]
+rm(list=c("liste_CBSM","liste_CONT"))
+rm(list=c("COPE_notation","HAD_notation","PSS_notation","RRS_R_notation","taux_reponse"))
+
+#Ílast correction
+
+clean_T0_T1[is.na(clean_T0_T1$T0_Signes_cliniques_actuels),"T0_Signes_cliniques_actuels"]<-"Aucun"
+clean_T0_T1[,"T0_Penser_sante"]<-as.factor(clean_T0_T1[,"T0_Penser_sante"])
+clean_T0_T1[,"Pathologie"]<-as.factor(clean_T0_T1[,"Pathologie"])
+clean_T0_T1[,"Niveau_etude"]<-as.factor(clean_T0_T1[,"Niveau_etude"])
+clean_T0_T1[,"T0_Signes_cliniques_actuels"]<-as.factor(clean_T0_T1[,"T0_Signes_cliniques_actuels"])
+clean_T0_T1[,"Assiduite"]<-as.numeric(clean_T0_T1[,"Assiduite"])
+```
+
+```{r, echo=FALSE, include=FALSE}
+col_grp<-c("CBSM"="blue","CONT"="grey")
+
+kfolds<-function(Y,nb_decoupe){
+  # Initialisation de la fonction
+  ## Taille de la population de départ
+  n<-length(Y)
+  ## Nombre de Folds
+  #nb_decoupe<-nb_decoupe
+  ## Création d'une liste vide
+  sample_data<-list()
+  ## On mélange les numéros des individus aléatoirement.
+  ### nous considérons que au vu de la taille de notre jeu de donnée
+  ### une tirage aléatoire respectera dans l'ensemble la stratification de notre population
+  alea<-sample(1:n,n,replace=FALSE)
+
+  # Intialisation de la boucle
+  ## initialisation du while
+  start<-1
+  end<-ceiling(n/nb_decoupe)
+  i<-1
+
+  while (i<=nb_decoupe) { 
+    # Tant que l'on a pas le nombre de folds folds on continue
+  
+    # On récupère les numéros des individus pour la partie test
+    test<-alea[start:end]
+    # Idem pour les individus de l'apprentissage
+    learn<-alea[-start:-end]
+    # On place les deux dans une liste, et l'on place cette liste dans une liste contenant nos folds
+    sample_data[[i]]<-list("test"=test,"learn"=learn)
+  
+    #Incrementation de la boucle
+    i<-i+1
+    start<-end+1 
+    # On commence à partir du premier non sélectionné pour le test du fold précédent
+    end<-ceiling(n/nb_decoupe)*i
+    if (end>=length(alea)) { 
+      #Si end dépasse la taille max d'individus alors end deviens la valeur finale
+      end<-length(alea) 
+      # On a alors un folds plus petit que les autres, mais on y peut rien, ça dépend du découpage demandé
+    }
+  }
+  return(sample_data)
+}
+
+perform<-function(X){
+  ## Matrice de confusion
+  matri_conf<-table(X$reel,X$predit)
+  ## Taux de bonne classification global
+  accuracy<-sum(X$reel==X$predit)/length(X$reel)
+  ## Taux de bonne classification des instances positives
+  sensibility<-sum(X$reel==1&X$predit==1)/(sum(X$reel==1&X$predit==1)+sum(X$reel==1&X$predit==0))
+  ## Taux de bonne classification des instances négatives
+  specificity<-sum(X$reel==0&X$predit==0)/(sum(X$reel==0&X$predit==0)+sum(X$reel==0&X$predit==1))
+  #retour
+  return(list("acc"=accuracy,"sensi"=sensibility,"speci"=specificity))
+}
+```
+
+\newpage
+
+# Résumé
+
+Le CBSM ou Cognitive Behavioral Stress Management est un programme de gestion du stress qui mélange des exercices de relaxation, de restructuration cognitive et de dynamique de groupe.Si ce programme étudié principalement aux Etats-Unis s'avère efficace sur des maladies comme le cancer du sein ou le VIH, il n'existe cependant que peu d'études sur l'application du programme CBSM sur des patients atteints de maladies cardio-vasculaires et de son effet sur le stress, l'anxiété et les pensées intrusives.
+
+Ainsi, l'objectif de ce document est d'étudier l'efficacité de ce programme auprès de patients atteints de maladies cardio-vasculaires. Pour cela, les patients ont été séparés en 2 groupes, un groupe témoin et un groupe participant au programme CBSM. Des mesures physiologiques ont étés relevés avant et après l'application du programme, les patients ont aussi répondu à des questionnaires dans le but d'évaluer le stress perçu, l'anxiété, la dépression et les stratégies de coping.
+
+Une étude ultérieur ayant mis en valeur l'efficacité du programme concernant l'amélioration du stress perçu et de l'anxiété, nous cherchons ici à étudier l'efficacité du programme sur le stress ressenti et déterminer les éléments qui ont pu permettre un amélioration de celui-ci.
+
+Globalement, l'implication des patients semblent être très souvent le meilleur moyen d'expliquer des progrès physiologiques. En effet, ceux ayant eu une très grande assiduité ainsi que ceux motivé pour continuer après ont vu leur état s'améliorer. A l'inverse, ceux se considérant en très bonne santé ou très peu assidu ne semblent pas observer de progrès.
+
+Ainsi, une expérience menée avec plus d'assiduité et potentiellement sur des personnes ne se considérant pas en très bonne santé (ou plus motivée) pourrait permettre d'avoir une analyse avec des résultats plus concret.
+
+Néanmoins, pour le moment le programme n'a pas permis une amélioration significative de l'ensemble de nos échantillons. Nous pouvons supposer une modification de la proportion de personne ayant moins de problème physiologique, mais sans plus d'individus dans le groupe de contrôle (CONT), impossible de confirmer cette intuition.
+
+Enfin une amélioration des scores de psychologie ne semblent pas liée à une amélioration des scores physiologiques. De même dans l'autre sens, l'amélioration physiologique des patients ne semblent pas liée à une amélioration des scores psychologiques. Néanmoins, des patients ont vu une amélioration physiologique alors que le CBSM intervient surtout sur la perception du stress. Nous ne pouvons donc pas totalement écarter l'existence d'un lien entre les deux ici.
+
+\newpage
+
+# Introduction
+
+## Etat des lieux
+
+Les maladies cardiovasculaires sont un ensemble de troubles affectant le coeur et les vaisseaux sanguins. Première cause de mortalité dans le monde selon l'OMS, elles nécessitent souvent une prise en charge lourde comprenant soutien psychologique et médicaments. Ainsi, il est important de trouver des solutions efficaces pour aider les personnes exposées à ces maladies.
+
+Si l'alimentation et le tabagisme sont des facteurs aggravant connus, de nombreuses études mettent en évidence l'existence d'un lien entre stress et maladies cardio-vasculaires. Ainsi, proposer des solutions agissant sur le stress et ne nécessitant pas une prise en charge lourde ou médicamenteuse peut permettre de soulager les personnes atteintes de problèmes cardiovasculaires.
+
+Or, il existe de nombreuses méthodes pour faciliter la gestion du stress, dont le CBSM.
+
+## CBSM ou Cognitive Behavioral Stress Management
+
+Le CBSM est un programme de gestion du stress qui mélange des exercices de relaxation, de restructuration cognitive et de dynamique de groupe.L'objectif est de permettre aux patients d'avoir accès à des connaisances sur eux-même, sur le stress et son impact, et sur les réactions psychologiques qu'il peut susciter. Il est constitué de plusieurs séances en groupe ainsi que d'exercices à réaliser chez soi.
+
+Si ce programme étudié principalement aux Etats-Unis s'avére efficace sur des maladies comme le cancer du sein ou le VIH, il n'existe cependant que peu d'études sur l'application du programme CBSM sur des patients atteints de maladies cardio-vasculaires et de son effet sur le stress, l'anxiété et les pensées intrusives.
+
+## Expérience
+
+Ainsi en 2016 une expérience a été réalisé sur des patients atteints de pathologies cardiaques. Ces patients ont suivi le programme CBSM et ont répondus à des questionnaires afin d'évaluer leurs états psychologiques. De plus des relevés physiologiques ont aussi été réalisés. Les questionnaires doivent permettre d'évaluer le ressenti des patients par rapport au stress, tandis que les relevés physiologique permettent d'évaluer l'impact physique des interventions.
+
+# Objectif
+
+Ce document fait suite au travail rédigé par Franck D'ALESSANDRO mettant en avant l'efficacité du programme CBSM sur la diminution du stress perçu par les patients ainsi que leur anxiété. 
+
+Le but de cette étude est donc d'analyser l'influence  du programme sur le stress "physique" des patients (que l'on distinguera du stress perçu). De plus, on souhaite étudier les éléments pouvant expliquer l'amélioration de l'état de stress du patient ou à l'inverse pouvant expliquer l'absence d'amélioration.
+
+
+\newpage
+# Approche du problème
+
+## Participants
+
+Au départ, l'expérience porte sur 150 participants ayant développés une maladie cardiaque. 50 personnes participent au programme CBSM, 50 personnes participent à des séances la relaxation et 50 personnes sont des individus "contrôle" ne suivant pas de programme particulier (hormis les soins). Ces personnes proviennent de différent lieux dans l'aglomération de Grenoble :
+
+* Service de réadaptation cardiaque de l'hôpital Sud (Echirolles)
+* Institut cardio-vascualire du groupe hospitalier mutualiste de Grenoble
+* Réseau des pathologies vasculaires GRANTED à Saint-Martin-d'Hères
+* Service de cardiologie du CHU La Tronche
+* Service de diabétologie du CHU La Tronche
+
+Les patients sont recrutés par les équipes soignantes, les personnes acceptant de participés sont placés aléatoirement dans l'un des 3 groupes.
+
+## Méthode
+
+Le programme CBSM est constitué de plusieurs séances (2h par semaine) avec en plus des excercices à réaliser chez soi. Après l'ensemble des séances, les patients sont invités à répondre à des questionnaires mesurant leur perception du stress puis des mesure physiologiques sont prises. Ces mesures sont prises avec un module BIOPAC MP 150 qui va permettre de relever plusieurs variables.
+
+Les mesures et les réponses aux questionnaires sont prises à différents moments :
+
+* T0 : avant le début des séances CBSM
+* T1 : à la fin des 10 semaines d'interventions
+* T2 : 6 mois après l'intervention
+
+### Mesure physiologique : HRV ou  Heart Rate Variability
+
+Les recherches en psychophysiologie intègrent de plus en plus d'étude sur la variabilité du rythme cardiaque (HRV). En effet, il existe un lien entre le système nerveux parasympathique (lié à la régulation cardiaque) et de nombreux phénomènes psychophysiologique. Le HRV est d'ailleurs utilisé pour prédire les risques de mortalité provenant de cause mental ou physique.
+
+Un relevé du HRV est simple à mettre en place et sans douleur, d'où son utilisation répandue. Parmis les nombreuses variables étudiables, celles d'intérêts sont :
+
+* RMSSD (Root Mean Square of Succesive differences) dont les variations sont dépendantes du tonus vagal (activité du nerf vague, composant du sytème parasympathique contrôlant les activités involontaires des organes).
+* HF (High Frenquencies) dont les variations proviennent aussi du tonus vagal mais peuvent être influencé par la respiration.
+* LF (Low Frequencies) ainsi que le rapport LF/HF, dont les variations dépendent de divers éléments dont le système sympathique (responsable du rythme cardiaque mais aussi de la contraction des muscles lisses) et le tonus vagal.
+
+Bien que facile à relever, le HRV est sujet à des erreurs de mesures ou à des modifications de celui-ci dû à des facteurs externes pouvant le rendre difficile à étudier (caféine etc...)
+
+Dans les études statistiques, le HRV est très souvent utlisé comme une variable les régressions ou les corrélations, permettant souvent de distinguer des groupes selons d'autres critères (comme des différences individuelles). Parfois, le HRV peut être considéré comme une variable dépendante en créant 2 groupes séparés par la médiane. A ce moment, on suppose que le HRV illustre des particularité individuelles (on sait par exemple que le controle vagal est partiellement héritable, ce qui peut en faire une information propre à chaque individus et non dépendantes de variables externes).
+ 
+Concernant la distribution des variables liées au HRV, la question de la normalité des variables est discutée. Mais des études tendent à observer une non normalité de la distribution de ces variables. La transformation logarithmique est alors une procédure courante pour remédier à ce problème.
+
+### Évaluation du stress
+
+#### PSS ou Perceived Stress Scale
+
+Le PSS ou échelle de stress perçu permet d'évaluer la fréquence à laquelle le sujet semble percevoir les situations de la vie ou du travail comme pénibles, menaçantes ou incontrôlables. Le PSS se distingue car il ne porte pas sur les symptômes ou sur des évènements précis.
+
+Le sujet répond à une série de question puis l'on calcul un score à partir des réponses. Plusieurs versions existent, avec un nombre différent de questions (14,10 ou 4). Les modalités de réponse sont des échelles de réponses (5 points de "jamais" à "très souvent"). Chaque modalité à une valeur selon la question et la somme de ces valeurs permet de calculer le score.
+
+C'est un test possédant de nombreuses qualités. En effet, des liens de corrélations ont été établis entre ce tests et les symptomes de dépressions, les états de santé perçu et (négativement) avec la mesure de satisfaction. Il est aussi de plus corrélé avec des variables non dépendantes de la perceptions comme la présence de marqueurs biologiques du stress.
+
+Néanmoins, ce test reste sujet à des débats à cause du lien entre stress perçu et détresse psychologique, qui bien que empiriquement lié sont deux phénomènes distincts.
+
+#### Brief COPE, évaluation des stratégies face au stress
+
+Le Brief COPE est un questionnaire mesurant les stratégies de coping (ensemble des efforts cognifitifs et comportementaux pour faire face à des épreuves personnelles) ou de régulation cognitives en réponse au stress. C'est une version réduite du COPE (on a ici que 28 questions au lieu de 60).
+Avec ce questionnaire, on calcul alors 14 scores différents, représentant les différentes stratégies :
+* distraction
+* faire face activement ou coping actif
+* déni
+* utilisation de substance
+* utilisation de soutien emotionnel
+* utilisation d'un support instrumental (aide pour les tâches comme la cuisine, le ménage etc...)
+* désengagement
+* expression des sentiments
+* réinterprétation positive
+* planification
+* humour
+* acceptation
+* religion
+* blame
+
+Son intérêt dans le cadre de patient cardiaque provient qu'après un évènement cardiaque, les patients ont tendances à recourir à certaines stratégies afin de gérer cette nouvelle situation.
+
+#### HADS ou Hospital Anxiety and Depression Scale
+
+Il s'agit d'un questionnaire en 14 questions permettant d'identifier et d'évaluer les symptômes anxiodépressifs. Contrairement à d'autres outils, il ne cherche pas à distinguer des types de dépressions.
+
+Il est possible de calculer un score ou deux sous scores correspondant aux deux sous-échelles (dépression et anxiété).
+
+Dans la revue de littérature effectuée par Hermann (1997),la validité prédictive de l'échelle et sa compréhension par les patients semblent être établie. Des analyses factorielles semblent valider la logique de deux sous échelles même si la version française semble elle dégager 3 facteurs (Rzavi et al. 1989).
+
+#### RRS ou Ruminative Response Scale
+
+L'échelle de réponse ruminative est un questionnaire centré autour de deux composantes : la réflection et la rumination (le fait de broyer du noir).
+
+La rumination est l'une des stratégies de coping souvent jugée comme innefficace et un facteur important du maintien de la dépression. Il s'agirait aussi d'un moyen de prédiction efficace de l'anxiété (voir même des intentions de suicide), ainsi que d'un facteur ayant une influence négative sur l'efficacité des interventions sur le plan cognitif.
+
+A cela on distingue la réflexion dont le processus bien que proche de la rumination s'apparente à une stratégie permettant de réduire les symptômes de la dépression. (La rumination serait la comparaison passive de sa situation avec des standards inattegnable tandis que la reflexion résulte d'une volonté de résoudre ses problèmes afin d'aller mieux).
+
+
+## Analyses
+
+L'analyse va se dérouler en plusieurs étapes :
+
+* Vérifier si il existe des différences à T0 entre nos groupes (les individus sont-ils homogènes au départ)
+* Vérifier si il existe des différences entre T0 et T1 entre nos groupe (est ce qu'il y a du progrès)
+* Déterminer les éléments les plus significatifs expliquant l'amélioration des individus ou la non amélioration.
+
+Pour cela, nous avons en premier lieu réalisé un nettoyage des données ainsi qu'une première analyse descriptive, puis afin de répondre à nos problèmatiques, nous avons réalisés plusieurs analyses des correspondances multiples dans le but de réduire le nombre de nos variables d'intérêts ainsi qu'étudier les éléments permettant de liéer nos indcateurs physiologiques avec nos autres variables. Enfin, nous avons réalisés des regressions dans le but de déterminer les éléments essentiels permettant de déterminer l'efficacité du programme sur un individu (et pourquoi pas prédire à l'avance les individus pour qui ce programme pourrait permettre une amélioration significative).
+
+### ACM ou Analyse des correspondances multiples
+
+L'ACM est une méthode d'analyse pour des données qualitatives. Elle permet d'étudier les liaisons pouvant exister entre des variables, les profils similaires ou bien les variables et les modalités ayant le plus d'influence.
+
+Pour cela, nous étudions les distances entre les modalités à travers les individus. Ainsi deux modalités sont d'autant plus éloignées qu'elles ont peu d'individus ayant ces deux modalités en même temps.
+
+La distance entre deux modalités $k$ et $k'$ se calcule en dénombrant les individus ($I$) qui prennent soit la modalité $k$ soit la modalité $k'$ à savoir $I_{k \ne k'}$, et pondérant par une fonction inversement proportionnelle à $I_k$  et $I_{k'}$.Avec $C'$ une constante, cette distance peut donc s'écrire 
+$$d^2_{k,k'} = C'\sum ^I_{i=1} \Bigl(\frac {x_{ik}}{I_k} - \frac {x_{ik'}}{I_{k'}}\Bigr)^2$$
+
+### Régression Logistique
+
+La régression logistique est un modèle de régression pour une variable binomiale (avec 2 modalités). Le but est de calculé un score représentant la probabilité pour un individus d'être dans une catégorie. Ce score s'exprime ainsi :
+$$score(x) =  \frac {P(Y=C_1|X=x)}{1-P(Y=C_1|X=x)}$$
+Avec $Y$ la variable que l'on cherche à prédire, pouvant prendre 2 modalités $C_1$ et $C_2$, et $X$ l'ensemble des autres variables décrivant un individus.
+
+## Limitations
+
+### Erreurs
+
+Plusieurs problèmes apparaissent dans notre méthodologie :
+
+* Si au départ, nous devions avoir 3 groupes, au final, seulement 2 groupes existent effectivement : les groupes CBSM et CONTROLE. Ces deux groupes sont de tailles différentes. De plus, le groupe CONTROLE réalise des exercices de relaxation.
+* Les questionnaires furent remplis par les individus eux-mêmes, ainsi de nombreuses erreurs se sont glissées (valeurs manquantes, imprécisions...) et surtout, les identifiants sont parfois érronés, nous empêchant de relier des questionnaires avec des mesures, réduisant le nombre d'individus utilisables.
+* Des erreurs de mesures peuvent fausser nos résultats (erreurs de manipulation).De plus, nous faisons face à des individus sous médication ayant une pathologie cardiaque, les chances d'obtenir des valeurs extrêmes sont grandes. Nous devons donc écarter des individus, réduisant la taille de nos jeux de données et donc la précision de nos analyses.
+
+### Durées de l'expérimentation
+
+Les individus de l'expérience ont été exposé au programme pendant 10 semaines, sans obligations d'être présent à toute les séances, ni obligation à réaliser les exercices à faire chez soi, cela limite donc l'influence du programme sur nos patients.
+
+Enfin, cette étude est basée sur le bénévolat. Hormis la volonté des patients, il n'y avait que peu d'obligations de poursuivre l'étude. Ainsi, nous observons une très grande absence de réponse pour les temps T2 (plusieurs mois après expérience). Nous avons aussi des patients absents lors des premières mesures, mais présent après etc.
+
+Au final, au vu du faible de nombre de réponse pour le temps T2, nous avons décider de limiter nos analyses à T0 et T1, ne nous permettant pas de constater des résultats sur le long terme.
+
+\newpage
+
+# Résultats
+
+## Diminution de la participation à T1 comparé à T0 et faible participation globale
+
+La première observation importante concernant nos données concerne le nombre d'individus dans les groupes. En effet, nous pouvons observer qu'entre le moment T0 et T1, la participation à l'expérience varie. Nous observons peu de participant du groupe CONT dans nos données. Nous pouvons supposer que la motivation des personnes du groupe CONT était plus faible que celles du groupe CBSM, d'où le peu de présence lors des relevés en T1.
+```{r, echo=FALSE, fig.align="center"}
+barplot(height=matrix(c(table(physio_T0$Groupe),table(physio_T1$Groupe)),nrow=2,dimnames=list(c("CBSM","CONT"),c("T0","T1"))),legend.text = c("CBSM", "CONT"),col = col_grp,main="Répartition des groupes pour les relevés physiologiques")
+```
+Néanmoins, si nous observons un nombre important de personne du groupe CBSM à avoir participé, il faut cependant noter qu'entre le temps T0 et T1, il ne s'agit pas toujours des mêmes personnes. Ainsi, si nous ne considérons que les personnes ayant participés à l'ensemble des relevés à T0 et T1 (physiologique et psychologique), nous nous retrouvons alors avec seulement `r nrow(clean_T0_T1)` individus.
+
+\newpage
+
+## Description de la population
+
+Voici les statistiques descriptives concernant les personnes ayant à la fois participées aux questionnaires et aux relevés (`r nrow(clean_T0_T1)` individus).
+
+```{r,echo=FALSE}
+our_summary1 <-
+  list("Age" =
+       list("min" = ~ min(.data$Age),
+            "max" = ~ max(.data$Age),
+            "mean (sd)" = ~ qwraps2::mean_sd(.data$Age)),
+       "Taille" =
+       list("min" = ~ min(.data$Taille),
+            "max" = ~ max(.data$Taille),
+            "mean (sd)" = ~ qwraps2::mean_sd(.data$Taille)),
+       "Poids" =
+       list("min" = ~ min(.data$Poids),
+            "max" = ~ max(.data$Poids),
+            "mean (sd)" = ~ qwraps2::mean_sd(.data$Poids)),
+        "Ethnie" =
+       list("Caucasienne (%)" = ~ qwraps2::n_perc0(.data$Ethnie == "Caucasienne"),
+            "Autre (%)"  = ~ qwraps2::n_perc0(.data$Ethnie == "Autre")),
+       "Enfants " =
+       list("min" = ~ min(.data$Nb_enfants),
+            "max" = ~ max(.data$Nb_enfants),
+            "mean (sd)" = ~ qwraps2::mean_sd(.data$Nb_enfants)),
+       "Niveau d'étude" =
+       list("BAC et moins (%)" = ~ qwraps2::n_perc0(.data$Niveau_etude %in% c("Aucun diplôme","Niveau BAC (général, technologique, professionnel)")),
+            "CAP/BEP (%)"  = ~ qwraps2::n_perc0(.data$Niveau_etude == "Niveau CAP / BEP"),
+            "BAC+2,+3,+4 (%)"  = ~ qwraps2::n_perc0(.data$Niveau_etude %in% c("Niveau BAC +2","Niveau BAC +3 ou Bac + 4")),
+            "BAC +5 et plus (%)"  = ~ qwraps2::n_perc0(.data$Niveau_etude == "Niveau BAC + 5 et plus")),
+       "Assiduité au programme " =
+       list("min" = ~ min(.data$Assiduite),
+            "max" = ~ max(.data$Assiduite),
+            "mean (sd)" = ~ qwraps2::mean_sd(.data$Assiduite)),
+       "Groupe" =
+       list("CBSM (%)" = ~ qwraps2::n_perc0(.data$Groupe == "CBSM"),
+            "CONT (%)"  = ~ qwraps2::n_perc0(.data$Groupe == "CONT"))
+       )
+whole <- summary_table(clean_T0_T1, our_summary1)
+bygenre <- summary_table(dplyr::group_by(clean_T0_T1,clean_T0_T1$Genre), our_summary1)
+
+both <- cbind(whole, bygenre)
+
+print(both,
+      rtitle = "Summary Statistics",
+      cnames = c("Total", "Femme", "Homme"))
+```
+
+Sauf pour l'âge, les caractéristiques de notre population sont en moyenne assez proche des valeurs moyennes que l'on retrouve dans l'ensemble de la France (selon les chiffres de l'INSEE).
+
+Néanmoins, comme les maladies cardiaque semblent toucher principalement les personnes d'un âge avancé, nous pouvons observer une légère différence avec la moyenne du pays.
+
+Concernant les groupes, il est a noté que nous n'avons pratiquement que des personnes provenant du groupe CBSM qui ont à la fois participé aux relevés physiologique et aux questionnaires. Ce qui rendra impossible la comparaison des deux groupes si on considère l'ensemble. (Néanmoins, si l'on ne considère que l'aspect physiologique ou seulement les questionnaires, il est possible d'avoir une amélioration de cette répartion).
+
+\newpage
+
+Voici ensuite les statistiques descriptives des variables d'intérêts concernant les personnes du groupe CBSM ayant participées aux questionnaires et aux relevés (`r nrow(clean_T0_T1[clean_T0_T1$Groupe=="CBSM",])` individus). Nous avons aussi ajouté les p valeurs du test de wilcoxon pour comparer les moyennes à T0 et T1.
+
+```{r,echo=FALSE,fig.fullwidth=TRUE}
+T0_summary <-
+  list("RMSSD" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$`T0 RMSSD (ms)`[.data$Groupe=="CBSM"])),
+       "HF" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$`T0 HF (ms^2)`[.data$Groupe=="CBSM"])),
+    "PSS score" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T0_PSS_score[.data$Groupe=="CBSM"])),
+       "RRS Ressassement score" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T0_RRS_R_score_Ressassement[.data$Groupe=="CBSM"])),
+       "RRS Reflexion score" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T0_RRS_R_score_Reflexion[.data$Groupe=="CBSM"])),
+       "HADS Anxiete score" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T0_HADS_score_Anxiete[.data$Groupe=="CBSM"])),
+       "HADS Depression score" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T0_HADS_score_Depression[.data$Groupe=="CBSM"])),
+       "COPE coping actif" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T0_COPE_coping_actif[.data$Groupe=="CBSM"])),
+       "COPE plannification" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T0_COPE_plannification[.data$Groupe=="CBSM"])),
+       "COPE soutien instrumental" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T0_COPE_soutien_instrumental[.data$Groupe=="CBSM"])),
+       "COPE soutien emotionnel" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T0_COPE_soutien_emotionnel[.data$Groupe=="CBSM"])),
+       "COPE expression des sentiments" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T0_COPE_expression_des_sentiments[.data$Groupe=="CBSM"])),
+       "COPE réinterprétation positive" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T0_COPE_reinterpretation_positive[.data$Groupe=="CBSM"])),
+       "COPE acceptation" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T0_COPE_acceptation[.data$Groupe=="CBSM"])),
+       "COPE deni" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T0_COPE_deni[.data$Groupe=="CBSM"])),
+       "COPE blame" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T0_COPE_blame[.data$Groupe=="CBSM"])),
+       "COPE humour" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T0_COPE_humour[.data$Groupe=="CBSM"])),
+       "COPE religion" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T0_COPE_religion[.data$Groupe=="CBSM"])),
+       "COPE distraction" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T0_COPE_distraction[.data$Groupe=="CBSM"])),
+       "COPE utilisation de substance" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T0_COPE_utilisation_de_substance[.data$Groupe=="CBSM"])),
+       "COPE desengagement" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T0_COPE_desengagement[.data$Groupe=="CBSM"]))
+       )
+
+T1_summary <-
+  list("RMSSD" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$`T1 RMSSD (ms)`[.data$Groupe=="CBSM"])),
+       "HF" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$`T1 HF (ms^2)`[.data$Groupe=="CBSM"])),
+    "PSS score" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T1_PSS_score[.data$Groupe=="CBSM"])),
+       "RRS Ressassement score" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T1_RRS_R_score_Ressassement[.data$Groupe=="CBSM"])),
+       "RRS Reflexion score" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T1_RRS_R_score_Reflexion[.data$Groupe=="CBSM"])),
+       "HADS Anxiete score" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T1_HADS_score_Anxiete[.data$Groupe=="CBSM"])),
+       "HADS Depression score" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T1_HADS_score_Depression[.data$Groupe=="CBSM"])),
+       "COPE coping actif" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T1_COPE_coping_actif[.data$Groupe=="CBSM"])),
+       "COPE plannification" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T1_COPE_plannification[.data$Groupe=="CBSM"])),
+       "COPE soutien instrumental" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T1_COPE_soutien_instrumental[.data$Groupe=="CBSM"])),
+       "COPE soutien emotionnel" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T1_COPE_soutien_emotionnel[.data$Groupe=="CBSM"])),
+       "COPE expression des sentiments" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T1_COPE_expression_des_sentiments[.data$Groupe=="CBSM"])),
+       "COPE réinterprétation positive" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T1_COPE_reinterpretation_positive[.data$Groupe=="CBSM"])),
+       "COPE acceptation" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T1_COPE_acceptation[.data$Groupe=="CBSM"])),
+       "COPE deni" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T1_COPE_deni[.data$Groupe=="CBSM"])),
+       "COPE blame" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T1_COPE_blame[.data$Groupe=="CBSM"])),
+       "COPE humour" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T1_COPE_humour[.data$Groupe=="CBSM"])),
+       "COPE religion" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T1_COPE_religion[.data$Groupe=="CBSM"])),
+       "COPE distraction" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T1_COPE_distraction[.data$Groupe=="CBSM"])),
+       "COPE utilisation de substance" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T1_COPE_utilisation_de_substance[.data$Groupe=="CBSM"])),
+       "COPE desengagement" =
+       list("mean (sd)" = ~ qwraps2::mean_sd(.data$T1_COPE_desengagement[.data$Groupe=="CBSM"]))
+       )
+
+Ttest_summary <-
+  list("RMSSD" =
+       list("mean (sd)" = ~ round(wilcox.test(paired=TRUE,.data$`T0 RMSSD (ms)`[.data$Groupe=="CBSM"],.data$`T1 RMSSD (ms)`[.data$Groupe=="CBSM"])[["p.value"]],digits=3)),
+       "HF" =
+       list("mean (sd)" = ~ round(wilcox.test(paired=TRUE,.data$`T0 HF (ms^2)`[.data$Groupe=="CBSM"],.data$`T1 HF (ms^2)`[.data$Groupe=="CBSM"])[["p.value"]],digits=3)),
+      "PSS score" =
+       list("mean (sd)" = ~ round(wilcox.test(paired=TRUE,.data$T0_PSS_score[.data$Groupe=="CBSM"],.data$T1_PSS_score[.data$Groupe=="CBSM"])[["p.value"]],digits=3)),
+       "RRS Ressassement score" =
+       list("mean (sd)" = ~ round(wilcox.test(paired=TRUE,.data$T0_RRS_R_score_Ressassement[.data$Groupe=="CBSM"],.data$T1_RRS_R_score_Ressassement[.data$Groupe=="CBSM"])[["p.value"]],digits=3)),
+       "RRS Reflexion score" =
+       list("mean (sd)" = ~ round(wilcox.test(paired=TRUE,.data$T0_RRS_R_score_Reflexion[.data$Groupe=="CBSM"],.data$T1_RRS_R_score_Reflexion[.data$Groupe=="CBSM"])[["p.value"]],digits=3)),
+       "HADS Anxiete score" =
+       list("mean (sd)" = ~ round(wilcox.test(paired=TRUE,.data$T0_HADS_score_Anxiete[.data$Groupe=="CBSM"],.data$T1_HADS_score_Anxiete[.data$Groupe=="CBSM"])[["p.value"]],digits=3)),
+       "HADS Depression score" =
+       list("mean (sd)" = ~ round(wilcox.test(paired=TRUE,.data$T0_HADS_score_Depression[.data$Groupe=="CBSM"],.data$T1_HADS_score_Depression[.data$Groupe=="CBSM"])[["p.value"]],digits=3)),
+       "COPE coping actif" =
+       list("mean (sd)" = ~ round(wilcox.test(paired=TRUE,.data$T0_COPE_coping_actif[.data$Groupe=="CBSM"],.data$T1_COPE_coping_actif[.data$Groupe=="CBSM"])[["p.value"]],digits=3)),
+       "COPE plannification" =
+       list("mean (sd)" = ~ round(wilcox.test(paired=TRUE,.data$T0_COPE_plannification[.data$Groupe=="CBSM"],.data$T1_COPE_plannification[.data$Groupe=="CBSM"])[["p.value"]],digits=3)),
+       "COPE soutien instrumental" =
+       list("mean (sd)" = ~ round(wilcox.test(paired=TRUE,.data$T0_COPE_soutien_instrumental[.data$Groupe=="CBSM"],.data$T1_COPE_soutien_instrumental[.data$Groupe=="CBSM"])[["p.value"]],digits=3)),
+       "COPE soutien emotionnel" =
+       list("mean (sd)" = ~ round(wilcox.test(paired=TRUE,.data$T0_COPE_soutien_emotionnel[.data$Groupe=="CBSM"],.data$T1_COPE_soutien_emotionnel[.data$Groupe=="CBSM"])[["p.value"]],digits=3)),
+       "COPE expression des sentiments" =
+       list("mean (sd)" = ~ round(wilcox.test(paired=TRUE,.data$T0_COPE_expression_des_sentiments[.data$Groupe=="CBSM"],.data$T1_COPE_expression_des_sentiments[.data$Groupe=="CBSM"])[["p.value"]],digits = 3)),
+       "COPE réinterprétation positive" =
+       list("mean (sd)" = ~ round(wilcox.test(paired=TRUE,.data$T0_COPE_reinterpretation_positive[.data$Groupe=="CBSM"],.data$T1_COPE_reinterpretation_positive[.data$Groupe=="CBSM"])[["p.value"]],digits=3)),
+       "COPE acceptation" =
+       list("mean (sd)" = ~ round(wilcox.test(paired=TRUE,.data$T0_COPE_acceptation[.data$Groupe=="CBSM"],.data$T1_COPE_acceptation[.data$Groupe=="CBSM"])[["p.value"]],digits=3)),
+       "COPE deni" =
+       list("mean (sd)" = ~ round(wilcox.test(paired=TRUE,.data$T0_COPE_deni[.data$Groupe=="CBSM"],.data$T1_COPE_deni[.data$Groupe=="CBSM"])[["p.value"]],digits=3)),
+       "COPE blame" =
+       list("mean (sd)" = ~ round(wilcox.test(paired=TRUE,.data$T0_COPE_blame[.data$Groupe=="CBSM"],.data$T1_COPE_blame[.data$Groupe=="CBSM"])[["p.value"]],digits=3)),
+       "COPE humour" =
+       list("mean (sd)" = ~ round(wilcox.test(paired=TRUE,.data$T0_COPE_humour[.data$Groupe=="CBSM"],.data$T1_COPE_humour[.data$Groupe=="CBSM"])[["p.value"]],digits=3)),
+       "COPE religion" =
+       list("mean (sd)" = ~ round(wilcox.test(paired=TRUE,.data$T0_COPE_religion[.data$Groupe=="CBSM"],.data$T1_COPE_religion[.data$Groupe=="CBSM"])[["p.value"]],digits=3)),
+       "COPE distraction" =
+       list("mean (sd)" = ~ round(wilcox.test(paired=TRUE,.data$T0_COPE_distraction[.data$Groupe=="CBSM"],.data$T1_COPE_distraction[.data$Groupe=="CBSM"])[["p.value"]],digits=3)),
+       "COPE utilisation de substance" =
+       list("mean (sd)" = ~ round(wilcox.test(paired=TRUE,.data$T0_COPE_utilisation_de_substance[.data$Groupe=="CBSM"],.data$T1_COPE_utilisation_de_substance[.data$Groupe=="CBSM"])[["p.value"]],digits=3)),
+       "COPE desengagement" =
+       list("mean (sd)" = ~ round(wilcox.test(paired=TRUE,.data$T0_COPE_desengagement[.data$Groupe=="CBSM"],.data$T1_COPE_desengagement[.data$Groupe=="CBSM"])[["p.value"]],digits=3))
+       )
+T0_sum <- summary_table(all_T0_T1, T0_summary)
+T1_sum <- summary_table(all_T0_T1, T1_summary)
+Ttest_sum<-summary_table(all_T0_T1,Ttest_summary)
+
+both <- cbind(T0_sum,T1_sum,Ttest_sum)
+
+print(both,
+      rtitle = "Summary Statistics",
+      cnames = c("T0","T1","P.value"))
+```
+
+Parmis les différences significatives, nous pouvons noter le PSS score (stress), le HADS Anxiété et dépression, le COPE réinterprétation positive et acceptation ainsi que le COPE distraction et desengagement. Il semble que nous observons une amélioration psychologique mais pas physiologique.
+
+\newpage
+
+## Non normalité et moyennes différentes des indicateurs physiologiques
+
+Nous étudions ici les patients ayant participé aux relevés physiologiques à T0, ce qui représente un effectif de `r nrow(physio_T0)` individus.
+
+### RMSSD
+Comme attendu, nous ne retrouvons pas ici une répartition normal (gaussienne) chez nos individus. Cependant la particularité du RMSSD au sein de notre population provient de sa répartiton : il y a plus de valeurs faibles de RMSSD que dans une population saine.
+
+```{r, echo=FALSE,fig.height=3.5,fig.width=3.5, fig.fullwidth=TRUE}
+Norm_RMSSD_ms<-c(42,15)
+
+hist(physio_T0$`T0 RMSSD (ms)`,freq=FALSE,breaks = 50,xlab="T0 RMSSD",ylab="Density",main="Histogramme du RMSSD", ylim=c(0,0.030))
+curve(dnorm(x,Norm_RMSSD_ms[1],Norm_RMSSD_ms[2]),col="red",add=TRUE)
+abline(v=mean(unlist(physio_T0[,"T0 RMSSD (ms)"]),na.rm = TRUE),col="blue")
+abline(v=median(unlist(physio_T0[,"T0 RMSSD (ms)"]),na.rm = TRUE),col="green")
+
+##
+
+hist(log(physio_T0$`T0 RMSSD (ms)`),freq=FALSE,breaks = 50,xlab="T0 log-RMSSD",ylab="Density",main="Histogramme du log-RMSSD")
+curve(dnorm(x,3.3,0.5),col="red",add=TRUE)
+abline(v=mean(log(physio_T0$`T0 RMSSD (ms)`),na.rm = TRUE),col="blue")
+abline(v=median(log(physio_T0$`T0 RMSSD (ms)`),na.rm = TRUE),col="green")
+```
+
+```{r, echo=FALSE}
+legend_hist <- data.frame(
+Items = c("Rouge", "Bleu","Vert"),
+Features = c(
+"Densité théorique connue du RMSSD et de son log",
+"Moyenne des données",
+"Médianne des données"
+)
+)
+kable(legend_hist, "latex", booktabs = T) %>%
+kable_styling(full_width = F)
+
+```
+
+En rouge, nous avons la répartition moyenne du RMSSD chez des individus sains (approximativement une loi normale de moyenne 42 et d'écart type 15). Nous observons ici un décalage de notre population par rapport aux résultats classique. Néanmoins, avec l'application du logarithme, nous pouvons retrouver une répartition normale. Dans le second graphique, nous avons en rouge la réparition supposée de notre nouvelle variable (loi normal de moyenne 3.3 et d'écart-type 0.5). Nous avons réalisé un test de normalité de shapiro sur l'indicateur log-RMSSD. L'hypothèse de départ (nulle) est : l'échantillon suit une loi normale.
+
+```{r, echo=FALSE}
+shap_test<-shapiro.test(log(physio_T0$`T0 RMSSD (ms)`))
+kable(data.frame("Test"=shap_test$method,"Statistique"=shap_test$statistic,"P valeur"=shap_test$p.value))%>%
+  kable_styling("striped", full_width = F)
+```
+Avec une p valeur aussi grande, nous ne pouvons pas rejeter l'hypothèse nulle : l'échantillon peut suivre une loi normale. Donc malgré la spécificité de notre population, nous pouvons retrouver une distribution normal en considérant le logarithme.
+
+\newpage
+
+### HF nu
+
+Pour les Hautes fréquences, nous retrouvons le même phénomène qu'avec le RMSSD : pas de normalité apparente et valeurs différentes de la normal. Néanmoins ici, le logarithme ne résoudra pas notre problème de normalité. De plus, nous observons ici aussi une différence entre la moyenne de notre effectif et la moyenne théorique chez les individus sains. Mais cette différence est de signe contraire au RMSSD.
+
+```{r, echo=FALSE,fig.height=3.5,fig.width=3.5, fig.fullwidth=TRUE}
+Norm_HF_nu<-c(40,10)
+
+hist(physio_T0$`T0 HF (n,u,)`,freq=FALSE,breaks = 50,xlab="T0 HF (nu)",ylab="Density",main="Histogramme du HF (nu)", ylim=c(0,0.040))
+curve(dnorm(x,Norm_HF_nu[1],Norm_HF_nu[2]),col="red",add=TRUE)
+abline(v=mean(unlist(physio_T0[,"T0 HF (n,u,)"]),na.rm = TRUE),col="blue")
+abline(v=median(unlist(physio_T0[,"T0 HF (n,u,)"]),na.rm = TRUE),col="green")
+
+hist(log(physio_T0$`T0 HF (n,u,)`),freq=FALSE,breaks = 50,xlab="T0 log-HF",ylab="Density",main="Histogramme du log-HF",xlim = c(3,5))
+curve(dnorm(x,4,0.5),col="red",add=TRUE)
+abline(v=mean(log(physio_T0$`T0 HF (n,u,)`),na.rm = TRUE),col="blue")
+abline(v=median(log(physio_T0$`T0 HF (n,u,)`),na.rm = TRUE),col="green")
+```
+
+```{r, echo=FALSE}
+legend_hist <- data.frame(
+Items = c("Rouge", "Bleu","Vert"),
+Features = c(
+"Densité théorique connue du RMSSD et de son log",
+"Moyenne des données",
+"Médianne des données"
+)
+)
+kable(legend_hist, "latex", booktabs = T) %>%
+kable_styling(full_width = F)
+
+```
+
+Le problème semble ici provenir de la présence de nombreux individus extrêmes, et ce, malgré un nettoyage important en amont des données. Mais il reste des individus dont il est difficile de déterminer si il s'agit d'erreur ou de cas particulier.
+
+Nous réalisons ici aussi un test de normalité.
+
+```{r, echo=FALSE}
+shap_test<-shapiro.test(log(physio_T0$`T0 HF (n,u,)`))
+kable(data.frame("Test"=shap_test$method,"Statistique"=shap_test$statistic,"P valeur"=shap_test$p.value))%>%
+  kable_styling("striped", full_width = F)
+```
+(Ici, le test de shapiro rejette l'hypothèse nulle de normalité, donc l'échantillon ne semble pas suivre une loi normale)
+
+Mais, il est admis que le logarithme de HF (LnHF) est souvent un meilleur estimateur de la régulation vagal. Nous le conserverons donc par la suite.
+
+```{r, echo=FALSE}
+clean_T0_T1[,"T0_ln_RMSSD"]<-log(clean_T0_T1$`T0 RMSSD (ms)`)
+clean_T0_T1[,"T1_ln_RMSSD"]<-log(clean_T0_T1$`T1 RMSSD (ms)`)
+
+clean_T0_T1[,"T0_ln_HF"]<-log(clean_T0_T1$`T0 HF (n,u,)`)
+clean_T0_T1[,"T1_ln_HF"]<-log(clean_T0_T1$`T1 HF (n,u,)`)
+```
+
+\newpage
+
+## Les groupes ne sont pas différents concernants leurs variables physiologiques
+
+Comme nous cherchons à étudier l'impact du programme sur les variables physiologiques de nos patients, il est important de vérifier qu'au départ, les groupes CONT et CBSM soit identique.
+
+### RMSSD
+
+Avec un test de shapiro pour chaque groupe, nous pouvons conclure que le logarithme du RMSSD peut potentiellement suivre une loi normale. Que ce soit dans le groupe CBSM :
+```{r, echo=FALSE}
+shap_test<-shapiro.test(log(unlist(physio_T0[physio_T0$Groupe=="CBSM","T0 RMSSD (ms)"])))
+kable(data.frame("Test"=shap_test$method,"Statistique"=shap_test$statistic,"P valeur"=shap_test$p.value))%>%
+  kable_styling("striped", full_width = F)
+```
+Et avec le groupe CONT :
+```{r, echo=FALSE}
+shap_test<-shapiro.test(log(unlist(physio_T0[physio_T0$Groupe=="CONT","T0 RMSSD (ms)"])))
+kable(data.frame("Test"=shap_test$method,"Statistique"=shap_test$statistic,"P valeur"=shap_test$p.value))%>%
+  kable_styling("striped", full_width = F)
+```
+
+Les groupes ayant été formé par tirages, nous supposons l'indépendance de nos deux groupes. Un test de student ne nous permet pas de considérer de différence significative entre les moyennes de nos deux populations.
+```{r, echo=FALSE}
+shap_test<-t.test(log(unlist(physio_T0[physio_T0$Groupe=="CBSM","T0 RMSSD (ms)"])),log(unlist(physio_T0[physio_T0$Groupe=="CONT","T0 RMSSD (ms)"])))
+
+kable(data.frame("Test"=shap_test$method,"Statistique"=shap_test$statistic,"P valeur"=shap_test$p.value))%>%
+  kable_styling("striped", full_width = F)
+```
+
+Un test d'Anova ne nous permet pas d'expliquer la variabilité par les groupes. Nous pouvons donc supposer qu'il n'y pas de différence entre les groupes concernant le RMSSD.
+
+```{r, echo=FALSE}
+shap_test<-summary(aov(log(physio_T0$`T0 RMSSD (ms)`)~physio_T0$Groupe))
+
+kable(data.frame("Label"=c("Groupe","Residus"),"DF"=shap_test[[1]]$Df,"Sum.Sq"=shap_test[[1]]$`Sum Sq`,"Mean.Sq"=shap_test[[1]]$`Mean Sq`,"F.value"=shap_test[[1]]$`F value`,"P.value"=shap_test[[1]]$`Pr(>F)` ))%>%
+  kable_styling("striped", full_width = F)
+```
+
+### HF
+
+HF ne suivant pas une loi normale, nous nous sommes contenté d'utiliser une Anova pour vérifier notre hypothèse :
+
+```{r, echo=FALSE}
+shap_test<-summary(aov(log(physio_T0$`T0 HF (ms^2)`)~physio_T0$Groupe))
+
+kable(data.frame("Label"=c("Groupe","Residus"),"DF"=shap_test[[1]]$Df,"Sum.Sq"=shap_test[[1]]$`Sum Sq`,"Mean.Sq"=shap_test[[1]]$`Mean Sq`,"F.value"=shap_test[[1]]$`F value`,"P.value"=shap_test[[1]]$`Pr(>F)` ))%>%
+  kable_styling("striped", full_width = F)
+```
+
+Ainsi, ici aussi, nous ne pouvons pas expliquer la variabilité par les groupes. Nous pouvons supposer qu'il n'y a pas de différence entre nos groupes CBSM et CONT concernant les principaux indicateurs physiologiques.
+
+\newpage
+
+## Pas d'amélioration généralisée, mais potentiellement une meilleur probabilité d'amélioration
+
+Si nous considérons l'ensemble des individus dont nous avons les relevés en T0 ou T1, nous pourrions supposer une amélioration (ou stabilisation) de nos indicateurs physiologiques. Néanmoins, cela n'est pas le cas lorsque nous considérons seulement les individus ayant participés aux relevés à T0 et T1. Dans l'ensemble, il y a eu une dégradation de nos indicateurs.
+
+```{r, echo=FALSE,fig.height=5,fig.width=3.5,fig.fullwidth=TRUE}
+rmssd_T0_T1_CBSM<-c(mean(unlist(physio_T0_T1[physio_T0_T1$Groupe=="CBSM","T0 RMSSD (ms)"])),mean(unlist(physio_T0_T1[physio_T0_T1$Groupe=="CBSM","T1 RMSSD (ms)"])))
+rmssd_T0_T1_CONT<-c(mean(unlist(physio_T0_T1[physio_T0_T1$Groupe=="CONT","T0 RMSSD (ms)"])),mean(unlist(physio_T0_T1[physio_T0_T1$Groupe=="CONT","T1 RMSSD (ms)"])))
+
+plot(c(0,1),rmssd_T0_T1_CBSM, type="b",pch=21,col=col_grp[1],lty=3, xlab="T",ylab="Moyenne RMSSD",main="RMSSD avec \n échantillons appareillés", ylim=c(20,50))
+lines(c(0,1), rmssd_T0_T1_CONT, type="b", pch=22, col=col_grp[2], lty=2)
+legend(x=0.4,y=50,legend=names(col_grp), col = col_grp,lty=1)
+
+tempo<-as.matrix(rbind("T0"=clean_T0_T1[clean_T0_T1[,"Groupe"]=="CBSM","T0 RMSSD (ms)"],
+      "T1"=clean_T0_T1[clean_T0_T1[,"Groupe"]=="CBSM","T1 RMSSD (ms)"],
+     "Seance"=clean_T0_T1[clean_T0_T1[,"Groupe"]=="CBSM","Nb_seance"]))
+
+ matplot(x=c(0,1),tempo[c(1,2),], type = c("b"),pch=1,col = c(NA,NA,NA,"grey","green","green","blue")[tempo[3,]],xlab = "T",xlim=c(0,1),ylab="RMSSD",main="RMSSD dans le groupe CBSM",ylim=c(0,120))
+ legend(x=0.2,y=120,legend=c("7 séances)","6 ou 5 séances","4 séances"), col = c("blue","green","grey"),lty=1)
+
+```
+
+Néanmoins, si l'on regarde la proportion d'individus ayant observé une amélioration de leur indicateur physiologique, nous pouvons observer que selon les groupes, elle diffère. 
+Un test de proportion, ne nous permet pas de supposer que les proportions entre groupe CONT et CBSM sont différentes, mais le manque d'individus dans le groupe CONTROLE à ce stade ne nous permet pas d'écarter avec certitude une différence de proportion (nous n'avons que 6 personnes dans le groupe CONT ayant participé aux relevés en T0 et T1 et seulement 2 ont vu leur état s'améliorer, or le test de proportion nécessite 5 personnes dans chaque effectif).
+
+```{r, echo=FALSE}
+prop_am<-c(sum((unlist(physio_T0_T1[physio_T0_T1$Groupe=="CBSM","T1 RMSSD (ms)"])-unlist(physio_T0_T1[physio_T0_T1$Groupe=="CBSM","T0 RMSSD (ms)"]))>=0),sum((unlist(physio_T0_T1[physio_T0_T1$Groupe=="CONT","T1 RMSSD (ms)"])-unlist(physio_T0_T1[physio_T0_T1$Groupe=="CONT","T0 RMSSD (ms)"]))>=0))
+length_T0_T1<-c(length(unlist(physio_T0_T1[physio_T0_T1$Groupe=="CBSM","T1 RMSSD (ms)"])),length(unlist(physio_T0_T1[physio_T0_T1$Groupe=="CONT","T1 RMSSD (ms)"])))
+sharp.test<-prop.test(prop_am,length_T0_T1)
+
+kable(data.frame("Test"=sharp.test[["method"]],"Statistique"=sharp.test[["statistic"]][["X-squared"]],"P.value"=sharp.test[["p.value"]] ))%>%
+  kable_styling("striped", full_width = F)
+
+```
+
+Nous ne pouvons pas confirmer que le programme CBSM améliore l'état des patients, mais nous savons que les patients ne sont pas tous égaux et qu'ils n'ont pas suivi le programme de la même façon. Nous allons donc chercher les éléments pouvant expliquer pourquoi certains patients se sont amélioré et d'autres non.
+
+
+\newpage
+
+## Progrès psychologique non explicable par des progrès physiologique et structure connue
+
+Nous avons étudié les progrès des patients dans les questionnaires d'évaluation psychologique afin de voir si ces progrès pouvait être influencé par des progrès physiologique ou si il existait une structure particulière liant progrès psychologique et physiologique.
+
+Dans le premier angle, nous avon étudier l'évolution de certains score psychologique entre T0 et T1. Nos variables à expliquer sont celles liées au RRS, au HADS et au PSS car il s'agit de score cherchant à décrire la situation d'un individu, tandis que le COPE cherche à décrire les stratégies de l'individus, qui est alors un moyen d'expliquer l'état d'un individu.
+
+```{r, echo=FALSE}
+data_inter_2<-clean_T0_T1[,c(2,4,5,11,13,15,16,24:29,31,32,39:46,67,68,71,77,78,81:86,100,101,103)]
+tri_inter<-sapply(data_inter_2, class)
+res.mca<-MCA(data_inter_2,quanti.sup = which(tri_inter=="numeric"), quali.sup=which(tri_inter!="numeric")[-c(15:19)],graph=FALSE)
+```
+
+Ici, nous avons 5 variables, ce qui fait que notre MCA représente nos données dans un plan à 5 dimensions. Nous avons ici une représentation de la part de variances  expliquée par chaque dimension.
+
+```{r, echo=FALSE,fig.height=3.5,fig.width=3.5, fig.fullwidth=TRUE}
+fviz_screeplot (res.mca, addlabels = TRUE, ylim = c (0, 45), main="Pourcentage de variance expliquée")
+
+fviz_mca_var(MCA(data_inter_2[,29:33],graph=FALSE),choice="mca.cor", repel=TRUE,ggtheme = theme_minimal())
+```
+
+Nous pouvons observer que la première dimension concentre une grande partie de la variance expliquée. Les dimensions 2 et 3 concentre aussi une certaine partie de la variation. En effet l'axe 1 décrit l'évolution des scores de stress (PSS et HADS), l'axe 2 décrit le score RRS de réflexion et l'axe 3 décrit le score RRS de ressassement.
+
+Concernant les variables liées au RRS, cela est en adéquation avec des études ultérieurs : on observe l'existence de 2 axes distingant la réflexion (un processus "positif") et le ressassement (processus "négatif"). Enfin, nous notons la distinction entre les axes liées au RRS et l'axe liée à l'anxiété, la dépression et le stress.
+
+A l'aide de variables supplémentaires nous pouvons discuter de ce résultat (non affiché pour plus de visibilité) :
+
+Ceux observant une augmentation (ou stagnation) des scores liées au stress ou l'anxiété sont souvent ceux ayant observé une baisse du score de COPE coping actif, ne pratiquant pas d'activité physique en T1 et ayant une assiduité inférieur à 7. Ils sont souvent plus agés et pratique beaucoup de sport à T0.
+A l'inverse ceux ayant observé une baisse de ces scores sont souvent ceux une bonne motivation pour continuer le programme CBSM.
+
+Concernant l'axe décrivant le score de réflexion, ceux ayant observé une baisse de ce score sont souvent ceux avec une assiduité très faible au programme. Ils pratiquent souvent beaucoup de sport à T1 et prennent souvent des médicaments à T0 et T1
+
+Pour le ressassement, ceux ayant observé une baisse du score de ressassement était ceux motivé pour pratiquer la régulation du stress, ceux pratiquant beaucoup d'activité physique par semaine à T1 et prenant souvent des médicament à T0.
+
+Ces résultats ne sont à première vu pas surprenant et nous permettent de supposer qu'il n'y a pas, en moyenne, de structure psychologique originale au sein de notre population.
+
+## Les facteurs expliquant un progrès physiologique du stress
+
+Nous allons ici regarder les éléments ayant eu une influence sur l'amélioration du stress des patients. Pour cela, nous avons crée deux variables indiquant si le RMSSD ou les HF se sont améliorés entre T0 et T1. Il s'agira ici de nos variables à expliquer. L'angle d'approche ici est de ne considérer que les individus en fonction de leurs variables physiologiques. Les variables psychologiques ne seraient alors qu'un moyen d'expliquer l'état physiologique d'un individu.
+
+```{r, echo=FALSE}
+data_inter<-clean_T0_T1[,c(3,6:7,13,15,16,26:27,29,31,32,41,44:46,65:66,72,74,79:80,89,100,101,103)]
+tri_inter<-sapply(data_inter, class)
+res.mca<-MCA(data_inter,quanti.sup = which(tri_inter=="numeric"), quali.sup=which(tri_inter!="numeric")[-c(15,16)],graph=FALSE)
+```
+
+Nous avons conservé ici les variables permettant de distinguer au mieux les personnes ayant progresser de celles n'ayant pas progresser.
+
+```{r, echo=FALSE,fig.align="center"}
+fviz_mca_var(res.mca,choice="mca.cor", repel=TRUE,ggtheme = theme_minimal())
+```
+
+Les patients ayant constaté comme signes cliniques actuels des sueurs (à T0 ou T1), des troubles de la vue ou des douleurs musculaires (à T1) semblent avoir constaté des progrès contrairement à ceux ayant pris du poids (à T0 et T1) ou  ayant des toux. Il est possible que les patients avec des signes cliniques faibles eurent moins de mal à progresser que les autres. L'autre hypothèse est que les toux et la prise de poids sont des signes cliniques qui aurait pu altérer la prise de mesure physiologique (il suffit de tousser durant les relever par exemple pour altérer les résultats de ceux-ci) d'où ce résultat.
+
+Les patients avec un bac +2 ou un bac +5 semblent constater des progrès, contrairement à ceux ayant un niveau CAP/BEP. Les autres niveau d'étude ne semblent pas corréler à l'amélioration.
+
+Nous pourrions nous étonner du lien entre progrès et assiduité. En effet, les individus ayant suivi avec une très grande assiduité le programme (9 et plus sur 10) semblent constater une amélioration du RMSSD, à l'inverse ceux ne l'ayant presque pas suivi (assiduité 1/10) n'ont pas constater d'amélioration du RMSSD ou des HF. Mais  pour d'autres valeurs d'assiduité, il ne semble pas y avoir de relation logique. Cette variable étant remplis par les patients eux-mêmes, on peut supposer qu'ils ont eux du mal à objectivement juger leur assiduité (sauf pour ceux très présent ou très absents).
+
+Les personnes se pensant en Très bonne santé semble très souvent ne constater aucun progrès, contrairement aux personnes pensant avoir une santé bonne. Il s'agit souvent des personnes avec une assiduité de 1 et ayant une motivation très faible à poursuivre le programme.
+
+Les hommes semblent constater un peu plus souvent des progrès, comme les personnes en concubinage. A l'inverse, les personnes marié(e) ou divorcé(e) sont moins enclin à constater un progrès.
+
+```{r, echo=FALSE,fig.height=4,fig.width=4, fig.align="center"}
+fviz_mca_var(res.mca, choice="quanti.sup", repel = TRUE)
+#fviz_mca_var(res.mca, repel = TRUE,ggtheme = theme_minimal())
+```
+
+Logiquement, un RMSSD (log ou non) élevé en T1 est corrélé avec le progrès, de même pour les HF. Mais cette logique ne s'applique pas pour le RMSDD à T0.
+
+## Déterminer les individus pouvant observer des progrés physiologique avec le programme CBSM
+
+Nous souhaitons par la suite mettre en place un moyen de détecter les patients dont le programme CBSM permettrait une réduction du stress physiologique. Pour cela, nous avons considéré les progrès concernant le RMSSD. 
+
+Comme notre objectif est de déterminer avant expérience si un patient aura de bonne chance de réduire son stress, nous avons conservé seulement les variables concernant les informations que nous pouvons obtenir à T0 (avant expérience). De plus, nous n'avons considéré que les variables affichées précédement, les autres ayant peu de lien avec l'amélioration du stress.
+
+```{r,echo=FALSE,include=FALSE}
+set.seed(95233754)
+Folds<-kfolds(1:nrow(data_inter),5)
+
+AIC_vec<-c()
+Mod_vec<-c()
+Pred_vec<-list()
+
+count<-0
+
+for (liste_folds in Folds) {
+  count<-count+1
+  reg<-glm(formula = progres_RMSSD~Pathologie+Niveau_etude+Etat_civil+T0_Penser_sante+T0_Signes_cliniques_actuels+Ethnie+`T0 RMSSD (ms)`,data = data_inter[liste_folds$learn,], family = binomial)
+  reg_step<-step(reg)
+  AIC_vec<-c(AIC_vec,reg_step$aic)
+  Mod_vec<-c(Mod_vec,reg_step$formula)
+  
+  possibleError <- tryCatch(
+      predict_reg<-predict.glm(reg, newdata=data_inter[liste_folds$test,],type="link"),
+      error=function(e) e
+  )
+  
+  if(inherits(possibleError, "error")){
+    predict_reg<-NA
+    next
+    
+  }
+  
+  
+  compa<-list("reel"=as.integer(as.logical(data_inter[liste_folds$test,"progres_RMSSD"])),"predit"=as.integer(as.logical(predict_reg<0)))
+  compa<-perform(compa)
+  
+  Pred_vec[[count]]<-compa
+
+}
+
+
+```
+
+Pour déterminer le meilleur modèle, nous réalisons une méthode de séléction via le critère d'information d'Akaike ou AIC. Nous réalisons cette recherche plusieurs fois en séparant notre jeu de donnée en deux : une partie d'apprentissage et une partie de test. Nous devons nous contenter d'une validation croisée non complète car notre jeu de donnée ne nous permet pas de séparer correctement nos données de façons à avoir une répartition parfaitement statifier selon l'ensemble de nos variables (parfois, certaines modalités ne sont pas représentés d'un jeu à l'autre).
+
+```{r,echo=FALSE}
+kable(cbind("Modele"=as.character(Mod_vec),"AIC"=floor(as.numeric(AIC_vec))), caption = "Regression logistique : Modeles et AIC", booktabs=T )%>% 
+  kable_styling(latex_options = "striped")
+```
+
+Avec le nombre restreint d'individus, nous n'obtenons pas des prédictions satisfaisantes (parfois impossible à réaliser, d'autres fois peu précise). La seule observation que nous pouvons tirer de notre expérience est qu'il semble qu'un modèle de prédiction soit dépendant de variables qui ne sont ni Ethnie, ni T0 Signe cliniques actuels. Cela laisse supposer qu'un bon modèle serait plutôt un croisement de variables plutôt qu'une variable très corrélées.
+
+```{r,echo=FALSE}
+reg_solo<-glm(formula = progres_RMSSD~T0_Penser_sante,data = data_inter, family = binomial)
+reg_step<-glm(formula = progres_RMSSD~Etat_civil+Pathologie+T0_Penser_sante,data = data_inter, family = binomial)
+kable(anova(reg_solo,reg_step, test="Chisq"),caption = "ANOVA comparant 2 modèles", booktabs=T)%>% 
+  kable_styling(latex_options = "striped")
+```
+
+En effet, lorsque l'on compare le modèle 2 (Pathologie+Etat civil+ T0 Penser Sante) avec le dernier modèle (T0 penser_sante) qui a le meilleur AIC, on observe qu'il existe bien une différence significative. Le second modèle semble mieux expliquer la variance, néanmoins, cette variable n'a pas permis une prédiction acceptable de la progression. Il semble donc difficile avec nos données actuelles de déterminer le meilleur modèle de prédiction, même si on peut imaginer que la Pathologie, l'etat civil, le niveau d'étude et les penser sur sa propre santé sont des éléments qui pourraient permettre un bon modèle.
+
+
+## Les facteurs expliquant à la fois des progrès physiologiques et psychologiques
+
+Précédement nous avons considéré deux angles différents :
+
+* Les individus sont décris par des variables psychologiques et les variables physiologiques peuvent expliquer les progrès psychologiques
+* Les individus sont décris par des variables physilogiques et les variables psychologiques peuvent expliquer les progrès physiologiques
+
+Mais un dernier angle à étudier et de supposer les individus décris à la fois physiologiquement et psychologiquement.
+
+```{r, echo=FALSE,fig.height=3.5,fig.width=3.5, fig.fullwidth=TRUE}
+res.mca<-MCA(clean_T0_T1[,79:85],graph=FALSE)
+fviz_mca_var(res.mca,choice="var", repel=TRUE,ggtheme = theme_minimal())
+
+fviz_screeplot (res.mca, addlabels = TRUE, ylim = c (0, 45), main="Variance expliquée")
+```
+Le premier axe ne change pas comparé aux études précédentes, il décrit toujours l'évolution des scores liées au stress, à l'anxiété et à la dépression. Le second axe décrit à la fois la baisse du ressassement et les progrès psysiologiques. Le ressassement est décrit par l'axe 4 tandis que l'axe 3 décrit la reflexion seulement.Le dernier axe semble décrire les progrès physiologique seulement.
+
+```{r, echo=FALSE}
+fviz_mca_biplot (res.mca, repel = TRUE, 
+               ggtheme = theme_minimal(),col.var = "cos2")
+fviz_mca_biplot (res.mca, repel = TRUE, 
+               ggtheme = theme_minimal(),axes=c(3,4),col.var = "cos2")
+```
+
+Selon le premier axe, pour les autres variables, la logique reste la même que lors des précédentes analyses (baisse du score d'anxiété, de stress et de dépression en parallèle).
+Selon le second axe, on observe que ceux ayant une baisse du score de réflexion sont aussi ceux observant des progrès physiologique. 
+Pour les axes 3 et 4, nous retrouvons ceux n'observant pas une baisse du score de réflexion mais observant une hausse des indicateurs physiologiques, et le ressassement lui reste toujours indépendant des autres axes.
+
+Ainsi, le second et le 3ème axe décrivent des situations contraires (baisse de la réfléxion et amélioration physiologique contre hausse de celle-ci et progrés physiologique). On peut supposer que les deux situations existent au sein de nos données, rendant difficile de concrétement décrire le lien entre variables physiologiques et psychlogiques. Néanmoins, si un lien doit exister, il semble exister avec la réflexion et non pas avec l'évolution de l'anxiété, de la dépression, du stress perçu ou du ressassement.
+
+\newpage
+# Conclusions
+
+## Résultats de nos analyses
+
+Le premier résultat concerne l'efficacité du programme. Si celui à permis à certaine personne d'améliorer leur état physiologique, dans l'ensemble, le programme n'a pas permis une amélioration significative de l'ensemble. Nous pouvons supposer une modification de la proportion de personne ayant moins de problème physiologique, mais sans plus d'invidus dans le groupe de contrôle (CONT), impossible de confirmer cette intuition.
+
+Le second résultat concerne le lien entre physiologie et psychologie. Pour le moment, une amélioration des scores de psychologie ne semblent pas liée à une amélioration des scores physiologiques. De même dans l'autre sens, l'amélioration physiologique des patients ne semblent pas liée à une amélioration des scores psychologiques. Néanmoins, des patients ont vu une amélioration physiologique alors que le CBSM intervient surtout sur la perception du stress. Nous ne pouvons donc pas totalement écarté l'existence d'un lien entre les deux ici.
+
+Globalement, l'implication des patients semblent être très souvent le meilleur moyen d'expliquer des progrès physiologiques. En effet, ceux ayant eu une très grande assiduité ont vu leur état s'améliorer, ainsi que ceux motivé pour continuer après. A l'inverse, ceux se considérant en très bonne santé ou très peu assidu ne semblent pas observer de progrès.
+
+## Amélioration à apporter
+
+Concernant l'analyse, nous avons séparé nos individus entre ceux ayant réalisé des progrès et ceux n'en n'ayant pas réalisé. Mais il aurait été surement plus intéressant d'avoir une analyse plus fine en séparant ces deux catégories en sous-catégories (fort ou faible progrès par exemple). Cela permettrait peut-être de mettre plus facilement en valeur les variables d'importances. Néanmoins, cela n'hésitera alors d'obtenir beaucoup plus d'individus valides.
+
+Pour les ACM, nous n'avons utilisé les variables COPE car elles sont censé décrire un comportement et non rendre compte d'un état (explicative plutôt que à expliquer) et vu leur grand nombre, elles auraient pu limiter l'efficacité de l'ACM. Néanmoins, il serait intéressant d'utiliser le sous score COPE (divisé en 7 variables).
+
+Pour la régression ou d'autres méthodes de prédiction, il faudrait réduire ne nombre de catégorie si nous conservons un faible nombre d'individus, cela permettrait de faciliter sa réalisation en réduisant le nombre cas particulier.
+
+Concernant l'expérience, nos analyses laissent apparaître un lien entre assiduité et progrès. Une expérience menée avec plus d'assiduité et potentiellement sur des personnes ne se considérant pas en très bonne santé pourrait permettre d'avoir une analyse avec des résultats plus concret.
+
+\newpage
+
+# Bibliographie
+
+## Revues, Documents, Publications
+
+* Fred Shaffer, J.P Ginsberg, *And Overview of Heart Rate Variability Metrics and Norms*, Front. Public Health 5:258. doi: 10.3389/fpush.2017.00258
+* Laborde S, Moskey E and Thayer JF (2017) *Heart Rate Variability and Cardiac Vagal Tone in Psychophysiological Research - Recommendations for Experiment Planning, Data Analysis and Data Reporting*, Front. Psychol 8:213. doi : 10.3389/fpsyg.2017.00213
+* Langevin V., Boini S., François M., Riou A. *Perceived Stress Scale (PSS), Échelle de stress perçu*, document de l'INRS
+* Jordan A. Litman, *The COPE inventory: Dimensionality and relationships with approach- and avoidance-motives and positive and negative traits*, Personality and Individual DIfferences.
+* Zigmond A.S.,Snaith R.P., *Hospital Anxiety and Depression Scale*, document de l'INRS
+* Parola N., Zendjidjian X. Y., Alessandrini M., Baumstarck K., Loundou A., Fond G.,Boyer L. (2017). *Psychometric properties of the ruminative response scale-short form in a clinical sample of patients with major depressive disorder. Patient Preference and Adherence*, 11, 929–937.
+* Favier A., *Le stress oxydant, Intérêt conceptuel et expérimental dans la compréhension des mécanismes des maladies et potentiel thérapeutique*, 2003
+
+## Sites internets
+
+### documentations sur l'utilisation de méthode sous R
+
+* http://larmarange.github.io/analyse-R
+* https://www.theanalysisfactor.com
+* http://www.sthda.com/french/
+
+### Théorie sur l'analyse de données
+
+* https://sites.google.com/site/mahepast
+* https://fr.wikipedia.org
+
+### Autres
+
+* https://www.who.int
+* https://insee.fr
+
+\newpage
+
+# Annexes
+
+## Lexique d'abréviation
+
+```{r, echo=FALSE}
+lexique <- data.frame(
+Items = c("CBSM", "CONT","HF (ms²/nu)","LF (ms²/nu)","LF/HF (ms²)", "RMSSD (ms)", "T0", "T1", "T2"),
+Features = c(
+"Cognitive Behavioral Stress Management : apprentissage de la gestion du stress et des émotions basé sur les méthodes cognitivo-comportementales et éducatives",
+"CONTROLE : groupe de participant n'ayant pas subis l'expérience",
+"High Frequency : haute fréquence respiratoire. en millisecondes ou normalisée. Des valeurs faibles vont souvent de paire avec le stress, la panique...",
+"Low Frequency : basse fréquence respiratoire, en millisecondes ou normalisée.",
+"le ratio des fréquences basse et haute.",
+"RMSSD (ms) : Moyenne des racines carrés du temps entre 2 battements du coeur, ou écart type des battements (en millisecondes), plus il augmente, plus le rythme cardiaque est faible",
+"Temps 0 : moment juste avant le début de l'expérimentation",
+"Temps 1 : moment juste après l'expérience",
+"Temps 2 : 6 mois après l'expérience"
+)
+)
+kable(lexique, "latex", booktabs = T) %>%
+kable_styling(full_width = F) %>%
+column_spec(1, bold = T, color = "red") %>%
+column_spec(2, width = "30em")
+
+```
+
+## Tables et Figures
+
+### ANOVA sur le nombre de séance en fonction des progrès réalisé sur le RMSSD
+
+```{r, echo=FALSE}
+annexe<-summary(aov(log(all_T0_T1$Nb_seance[all_T0_T1$Groupe=="CBSM"])~all_T0_T1$progres_RMSSD[all_T0_T1$Groupe=="CBSM"]))
+
+kable(data.frame("Label"=c("Groupe","Residus"),"DF"=annexe[[1]]$Df,"Sum.Sq"=annexe[[1]]$`Sum Sq`,"Mean.Sq"=annexe[[1]]$`Mean Sq`,"F.value"=annexe[[1]]$`F value`,"P.value"=annexe[[1]]$`Pr(>F)` ))%>%
+  kable_styling("striped", full_width = F)
+```
+
+### MCA seulement sur les variables psychologiques
+
+```{r, echo=FALSE}
+data_inter_2<-clean_T0_T1[,c(2,4,5,11,13,15,16,24:29,31,32,39:46,67,68,71,77,78,81:86,100,101,103)]
+tri_inter<-sapply(data_inter_2, class)
+res.mca<-MCA(data_inter_2,quanti.sup = which(tri_inter=="numeric"), quali.sup=which(tri_inter!="numeric")[-c(15:19)],graph=FALSE)
+fviz_mca_var(res.mca,choice="mca.cor", repel=TRUE,ggtheme = theme_minimal())
+```
+
+```{r, echo=FALSE,fig.width=5,fig.height=4.5}
+
+fviz_mca_var(MCA(data_inter_2[,29:33],graph=FALSE), col.var = "contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE, 
+             ggtheme = theme_minimal()
+             )
+```
+
+```{r, echo=FALSE}
+annexe<-res.mca$quali.sup$coord
+kable(annexe[abs(annexe[,1])>=1|abs(annexe[,2])>=1|abs(annexe[,3])>=1,1:3])
+```
+
+### MCA seulement sur les variables physiologiques
+
+```{r, echo=FALSE}
+data_inter<-clean_T0_T1[,c(3,6:7,13,15,16,26:27,29,31,32,41,44:46,65:66,72,74,79:80,89,100,101,103)]
+tri_inter<-sapply(data_inter, class)
+res.mca<-MCA(data_inter,quanti.sup = which(tri_inter=="numeric"), quali.sup=which(tri_inter!="numeric")[-c(15,16)],graph=FALSE)
+```
+
+```{r, echo=FALSE,fig.align="center"}
+annexe<-res.mca$quali.sup$coord
+kable(annexe[abs(annexe[,1])>=1|abs(annexe[,2])>=1,1:2])
+```
