@@ -20,7 +20,7 @@ physio_T0<-physio_T0[apply(is.na(physio_T0),1,sum)==0,]
 # mais on va laisser le choix de la taille de cet intervalle (2 ou 3 sigma ?)
 cherche.ext<-function(x,taille=2){
   sigma<-sd(x) # pour recalculer plusieurs fois l'écart type
-  ext<-mean(x)+c(-taille*sigma,2*sigma) # 2 valeurs de l'intervalle
+  ext<-mean(x)+c(-taille*sigma,taille*sigma) # 2 valeurs de l'intervalle
   result<-(x>=ext[1])&(x<=ext[2]) # TRUE si ok, FALSE si extrême
   return(result)
 }
@@ -28,7 +28,8 @@ cherche.ext<-function(x,taille=2){
 # on applique la fonction à nos données et on va conserver un vecteur qui indique si un individu est sans problème
 
 T0_indi_sp<-apply(apply(physio_T0,2, cherche.ext),1,sum)==17
-
+TO_ind<-apply(physio_T0,2, cherche.ext)
+temp<-apply(TO_ind,2,sum)
 # on peut regarder combien d'individus sont sans problème
 
 sum(T0_indi_sp)
