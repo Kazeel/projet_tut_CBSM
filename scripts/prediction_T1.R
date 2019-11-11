@@ -21,3 +21,6 @@ for (ind in 1:9) {
 stock[[1]]
 restock[[1]]
 apply(restock[[1]],1,sum)<=1
+
+mod<-lm(physio_T1[T1_indi_sp,][physio_T1[T1_indi_sp,]$Groupe=="CBSM",-c(1)])
+step(mod)
