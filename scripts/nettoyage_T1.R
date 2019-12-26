@@ -23,7 +23,3 @@ T1_indi_sp<-apply(apply(physio_T1[,-1],2, cherche.ext),1,sum)==17
 # on peut regarder combien d'individus sont sans problème
 
 sum(T1_indi_sp)
-
-# Maintenant on peut chercher une solution pour prédire les valeurs des personnes avec des problèmes !
-
-## Nous allons faire de la validation croisée, avec un ratio 3/4 - 1/4.
