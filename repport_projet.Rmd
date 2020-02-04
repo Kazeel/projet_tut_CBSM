@@ -191,6 +191,9 @@ Si nous pouvons par la suite discuter de l'intérêt de conserver des individus 
 ```{r, echo=FALSE}
 # on modifie les données de départ en se débarassant des personnes sans données en T0 et T1
 data_physio<-data_physio[vec_na_T0_T1<=17,]
+data_physio[is.na(data_physio$`Numéro HRV`),"Numéro HRV"]<-c(9998,9999)
+data_physio<-data_physio[!(data_physio$`Numéro HRV`==87&data_physio$Groupe=="CBSM"),]
+data_physio[data_physio$`Numéro HRV`==24,"Numéro HRV"]<-c(24,9997)
 # Recalcul de ces vecteurs
 vec_na_T0<-apply(X = data_physio[,5:21],MARGIN = 1, FUN = function(x){sum(is.na(x))})
 vec_na_T1<-apply(X = data_physio[,22:38],MARGIN = 1, FUN = function(x){sum(is.na(x))})
@@ -222,18 +225,19 @@ Nous nous concentrerons donc seulement sur les valeurs abérantes
 ```{r, echo=FALSE}
 # Création du jeu de données à imputer avec des NA pour les valeurs extrêmes.
 
-imput_T0<-apply(data_physio[vec_na_T0==0,5:21],2, FUN=function(x){
+imput_T0<-cbind(data_physio[vec_na_T0==0,"Numéro HRV"],apply(data_physio[vec_na_T0==0,5:21],2, FUN=function(x){
   need_replace<-!(cherche.ext(x))
   xbis<-x
   xbis[need_replace]<-NA
   return(xbis)})
+)
 ```
 
 Regardons le taux de valeur abérante pour chaque varialbe à T0
 
 ```{r, echo=FALSE}
 # FAIRE UN JOLIE TABLEAU !!
-apply(imput_T0,2,function(x){sum(is.na(x))/length(x)*100})
+apply(imput_T0[,-1],2,function(x){sum(is.na(x))/length(x)*100})
 
 ```
 On observe que majoritairement, nous n'avons pas de de variables avec un pourcentage trop important (au dela de 10%) de valeur abérante. Nous allons donc imputer l'ensemble des variables.
@@ -243,12 +247,12 @@ On observe que majoritairement, nous n'avons pas de de variables avec un pourcen
 L'idée ici est de chercher les individus proches des individus avec des valeurs manquantes, puis de compléter ces valeurs manquantes avec la moyenne de ces individus.
 
 ```{r, echo=FALSE}
-init_T0 = mice(imput_T0, maxit=0) 
+init_T0 = mice(imput_T0[,-1], maxit=0) 
 meth = init_T0$method
 predM = init_T0$predictorMatrix
 
-imputed_T0 <- mice(imput_T0, method=meth, predictorMatrix=predM, m=5)
-imput_T0_mean <- complete(imputed_T0)
+imputed_T0 <- mice(imput_T0[,-1], method=meth, predictorMatrix=predM, m=5)
+imput_T0_mean <- cbind(data_physio[vec_na_T0==0,"Numéro HRV"],complete(imputed_T0))
 ```
 
 <-- AUTRES METHODES ? --!>
@@ -256,8 +260,8 @@ imput_T0_mean <- complete(imputed_T0)
 ### Comparaison des méthodes
 
 ```{r, echo=FALSE}
-summary(imput_T0)
-summary(imput_T0_mean)
+summary(imput_T0[,-1])
+summary(imput_T0_mean[,-1])
 ```
 
 ## Imputation à T1
@@ -265,22 +269,23 @@ summary(imput_T0_mean)
 ```{r, echo=FALSE}
 # Création du jeu de données à imputer avec des NA pour les valeurs extrêmes.
 
-imput_T1<-apply(data_physio[vec_na_T1==0,22:38],2, FUN=function(x){
+imput_T1<-cbind(data_physio[vec_na_T1==0,"Numéro HRV"],apply(data_physio[vec_na_T1==0,22:38],2, FUN=function(x){
   need_replace<-!(cherche.ext(x))
   xbis<-x
   xbis[need_replace]<-NA
   return(xbis)})
+)
 ```
 
 ### Imputation par la moyenne prévisionnelle
 
 ```{r, echo=FALSE}
-init_T1 = mice(imput_T1, maxit=0) 
+init_T1 = mice(imput_T1[,-1], maxit=0) 
 meth = init_T1$method
 predM = init_T1$predictorMatrix
 
-imputed_T1 <- mice(imput_T1, method=meth, predictorMatrix=predM, m=5)
-imput_T1_mean <- complete(imputed_T1)
+imputed_T1 <- mice(imput_T1[,-1], method=meth, predictorMatrix=predM, m=5)
+imput_T1_mean <- cbind(data_physio[vec_na_T1==0,"Numéro HRV"],complete(imputed_T1))
 ```
 
 <-- AUTRES METHODES ? --!>
@@ -288,6 +293,6 @@ imput_T1_mean <- complete(imputed_T1)
 ### Comparaison des méthodes
 
 ```{r, echo=FALSE}
-summary(imput_T1)
-summary(imput_T1_mean)
+summary(imput_T1[,-1])
+summary(imput_T1_mean[,-1])
 ```
