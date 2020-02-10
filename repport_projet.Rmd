@@ -96,7 +96,14 @@ colnames(data_physio)[41:57]<-c("T2_Mean_RR_ms","T2_STD_RR_ms","T2_Mean_HR_1_min
 
 ##suppression des colonnes espaces
 data_physio<-data_physio[,!colnames(data_physio)%in%c("Espace_1","Espace_2")]
+data_physio<-data_physio[,!colnames(data_physio)%in%c("T0_VLF_pourcent","T0_LF_pourcent","T0_HF_pourcent","T0_LF_nu","T0_HF_nu","T0_LF_HF_ratio","T0_EDR_Hz","T1_VLF_pourcent","T1_LF_pourcent","T1_HF_pourcent","T1_LF_nu","T1_HF_nu","T1_LF_HF_ratio","T1_EDR_Hz","T2_Mean_RR_ms","T2_STD_RR_ms","T2_Mean_HR_1_min","T2_STD_HR_1_min","T2_RMSSD_ms",
+"T2_VLF_ms2","T2_LF_ms2","T2_HF_ms2","T2_VLF_pourcent","T2_LF_pourcent","T2_HF_pourcent","T2_LF_nu",
+"T2_HF_nu","T2_Total_power_ms2","T2_LF_HF_ratio","T2_EDR_Hz","T2_Frequence_Respiratoire")]
 
+num_var_T0<-5:14
+num_var_T1<-15:24
+nb_var_T0<-length(num_var_T0)
+nb_var_T1<-length(num_var_T1)
 ```
 
 \newpage
@@ -114,7 +121,7 @@ Au départ, l'expérience porte sur 150 participants ayant développés une mala
 
 Les patients sont recrutés par les équipes soignantes, les personnes acceptant de participés sont placés aléatoirement dans l'un des 3 groupes.
 
-## Méthode
+## Méthodes d'expérimentation
 
 Le programme CBSM est constitué de plusieurs séances (2h par semaine) avec en plus des excercices à réaliser chez soi. Après l'ensemble des séances, les patients sont invités à répondre à des questionnaires mesurant leur perception du stress puis des mesure physiologiques sont prises. Ces mesures sont prises avec un module BIOPAC MP 150 qui va permettre de relever plusieurs variables.
 
@@ -147,16 +154,16 @@ L'analyse va se dérouler en plusieurs étapes, chacune cherchant à répondre �
 * Vérifier si il existe des différences à T0 entre nos groupes (les individus sont-ils homogènes au départ)
 * Vérifier si il existe des différences entre T0 et T1 entre nos groupe (est ce qu'il y a du progrès)
 
-## Limitations
+### Limitations
 
-### Erreurs
+#### Erreurs
 
 Plusieurs problèmes apparaissent dans notre méthodologie :
 
 * Si au départ, nous devions avoir 3 groupes, au final, seulement 2 groupes existent effectivement : les groupes CBSM et CONTROLE. Ces deux groupes sont de tailles différentes. De plus, le groupe CONTROLE réalise des exercices de relaxation.
 * Des erreurs de mesures peuvent fausser nos résultats (erreurs de manipulation).De plus, nous faisons face à des individus sous médication ayant une pathologie cardiaque, les chances d'obtenir des valeurs extrêmes sont grandes. 
 
-### Durées de l'expérimentation
+#### Durées de l'expérimentation
 
 Les individus de l'expérience ont été exposé au programme pendant 10 semaines, sans obligations d'être présent à toute les séances, ni obligation à réaliser les exercices à faire chez soi, cela limite donc l'influence du programme sur nos patients.
 
@@ -164,9 +171,11 @@ Enfin, cette étude est basée sur le bénévolat. Hormis la volonté des patien
 
 Au final, au vu du faible de nombre de réponse pour le temps T2, nous avons décider de limiter nos analyses à T0 et T1, ne nous permettant pas de constater des résultats sur le long terme.
 
-<-- Discuter des problèmes et solutions --!>
+### Solutions facent aux limitations
 
-## Objectifs
+#### Imputation
+
+## Objectifs de l'analyse
 
 Ainsi, nos objectifs sont donc les suivants :
 
@@ -183,9 +192,9 @@ Le premier problème dans notre jeu de données est la présence de données man
 
 ```{r, echo=FALSE}
 # vecteur individus sans infos ) T0
-vec_na_T0<-apply(X = data_physio[,5:21],MARGIN = 1, FUN = function(x){sum(is.na(x))})
-vec_na_T1<-apply(X = data_physio[,22:38],MARGIN = 1, FUN = function(x){sum(is.na(x))})
-vec_na_T0_T1<-apply(X = data_physio[,5:38],MARGIN = 1, FUN = function(x){sum(is.na(x))})
+vec_na_T0<-apply(X = data_physio[,num_var_T0],MARGIN = 1, FUN = function(x){sum(is.na(x))})
+vec_na_T1<-apply(X = data_physio[,num_var_T1],MARGIN = 1, FUN = function(x){sum(is.na(x))})
+vec_na_T0_T1<-apply(X = data_physio[,num_var_T0[1]:num_var_T1[length(num_var_T1)]],MARGIN = 1, FUN = function(x){sum(is.na(x))})
 ```
 
 En effet, sur les `r nrow(data_physio)` individus du jeu de données de départ, `r sum(vec_na_T0==17)` n'ont pas de valeurs à T0, `r sum(vec_na_T1==17)` n'ont pas de données à T1 et `r sum(vec_na_T0_T1==34)` n'ont pas de données à T0 et T1.
@@ -194,13 +203,13 @@ Si nous pouvons par la suite discuter de l'intérêt de conserver des individus 
 
 ```{r, echo=FALSE}
 # on modifie les données de départ en se débarassant des personnes sans données en T0 et T1
-data_physio<-data_physio[vec_na_T0_T1<=17,]
+data_physio<-data_physio[vec_na_T0_T1<=nb_var_T0,]
 data_physio[is.na(data_physio$`Numéro HRV`),"Numéro HRV"]<-c(9998,9999)
 data_physio<-data_physio[!(data_physio$`Numéro HRV`==87&data_physio$Groupe=="CBSM"),]
 data_physio[data_physio$`Numéro HRV`==24,"Numéro HRV"]<-c(24,9997)
 # Recalcul de ces vecteurs
-vec_na_T0<-apply(X = data_physio[,5:21],MARGIN = 1, FUN = function(x){sum(is.na(x))})
-vec_na_T1<-apply(X = data_physio[,22:38],MARGIN = 1, FUN = function(x){sum(is.na(x))})
+vec_na_T0<-apply(X = data_physio[,num_var_T0],MARGIN = 1, FUN = function(x){sum(is.na(x))})
+vec_na_T1<-apply(X = data_physio[,num_var_T1],MARGIN = 1, FUN = function(x){sum(is.na(x))})
 ```
 
 Cela nous laisse alors avec `r nrow(data_physio)`, dont `r sum(vec_na_T0==17)` sans données à T0 et `r sum(vec_na_T1==17)` sans données à T1.
@@ -210,8 +219,8 @@ Cela nous laisse alors avec `r nrow(data_physio)`, dont `r sum(vec_na_T0==17)` s
 Le second problème est la présence de valeurs abérantes.
 
 ```{r, echo=FALSE}
-T0_indi_sp<-apply(apply(data_physio[vec_na_T0==0,5:21],2, cherche.ext),1,sum)==17
-T1_indi_sp<-apply(apply(data_physio[vec_na_T1==0,22:38],2, cherche.ext),1,sum)==17
+T0_indi_sp<-apply(apply(data_physio[vec_na_T0==0,num_var_T0],2, cherche.ext),1,sum)==nb_var_T0
+T1_indi_sp<-apply(apply(data_physio[vec_na_T1==0,num_var_T1],2, cherche.ext),1,sum)==nb_var_T1
 ```
 
 En effet, sur les `r length(T0_indi_sp)` individus du jeu de données de départ avec des valeurs à T0, `r sum(T0_indi_sp==FALSE)` ont aun moins une valeur extrème, et sur les `r length(T1_indi_sp)` individus avec des valeurs à T1, `r sum(T1_indi_sp==FALSE)` ont au moins une valeur extrême.
@@ -229,7 +238,7 @@ Nous nous concentrerons donc seulement sur les valeurs abérantes
 ```{r, echo=FALSE}
 # Création du jeu de données à imputer avec des NA pour les valeurs extrêmes.
 
-imput_T0<-cbind(data_physio[vec_na_T0==0,"Numéro HRV"],apply(data_physio[vec_na_T0==0,5:21],2, FUN=function(x){
+imput_T0<-cbind(data_physio[vec_na_T0==0,"Numéro HRV"],apply(data_physio[vec_na_T0==0,num_var_T0],2, FUN=function(x){
   need_replace<-!(cherche.ext(x))
   xbis<-x
   xbis[need_replace]<-NA
@@ -273,7 +282,7 @@ summary(imput_T0_mean[,-1])
 ```{r, echo=FALSE}
 # Création du jeu de données à imputer avec des NA pour les valeurs extrêmes.
 
-imput_T1<-cbind(data_physio[vec_na_T1==0,"Numéro HRV"],apply(data_physio[vec_na_T1==0,22:38],2, FUN=function(x){
+imput_T1<-cbind(data_physio[vec_na_T1==0,"Numéro HRV"],apply(data_physio[vec_na_T1==0,num_var_T1],2, FUN=function(x){
   need_replace<-!(cherche.ext(x))
   xbis<-x
   xbis[need_replace]<-NA
