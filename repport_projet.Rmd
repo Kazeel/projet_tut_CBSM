@@ -13,6 +13,10 @@ set.seed(42)
 
 library(readxl)
 library(mice)
+library(MASS)
+library(pROC)
+library(caret)
+library(kernlab)
 
 # Fonctions
 
@@ -296,3 +300,118 @@ imput_T1_mean <- cbind(data_physio[vec_na_T1==0,"Numéro HRV"],complete(imputed_
 summary(imput_T1[,-1])
 summary(imput_T1_mean[,-1])
 ```
+
+## Fichier final
+
+IL SEMBLE Y AVOIR UN PROBLEME AVOIR LA PREDICTION DE LA FREQUENCE RESPIRATOIRE. POUR LE MOMENT ELLE EST ENLEVE
+
+```{r,echo=FALSE}
+merge_data<-merge(imput_T0_mean[imput_T0_mean$`Numéro HRV` %in% imput_T1_mean$`Numéro HRV`,-18],imput_T1_mean[,-18],by="Numéro HRV")
+merge_data$"progress"<-as.factor(ifelse(merge_data$T0_RMSSD_ms>merge_data$T1_RMSSD_ms,1,0))
+print(table(merge_data$progress)/nrow(merge_data))
+```
+
+# Construction de modèles
+
+## Partition
+
+```{r}
+trainIndex <- createDataPartition(merge_data$progress,p=0.77,list=F)
+data_train<-merge_data[trainIndex,-c(1,18:33)]
+table(data_train$progress)
+data_test<-merge_data[-trainIndex,-c(1,18:33)]
+table(data_test$progress)
+```
+
+## Regression logistique
+
+```{r}
+fitControl <- trainControl(method="cv",number=4)
+
+reg_log<-train(progress~.,data = data_train, method="glmStepAIC",trControl=fitControl)
+print(reg_log$finalModel)
+```
+
+### Importance des variables
+
+```{r}
+print(varImp(reg_log))
+```
+
+### Modele final
+
+```{r}
+reg_log$finalModel
+```
+
+## SVM
+
+```{r}
+#paramètres d'apprentissage
+fitControl <- trainControl(method="cv",number=5)
+#modélisation avec paramètre de la technique d'apprentissage
+#SVM avec noyau linéaire, C = 0.1
+m_svm <- train(progress ~ ., data =
+data_train,method="svmLinear",trControl=fitControl,tuneGrid=data.frame(C=c(0.05,0.1,0.5,1,10)))
+print(m_svm)
+
+```
+
+
+## Test
+
+### Regression logistique
+
+```{r}
+reg_log$resample
+```
+
+
+```{r}
+reg_log_pred<-predict(reg_log,newdata=data_test)
+mat <- confusionMatrix(data=reg_log_pred,reference=data_test$progress,positive="1")
+print(mat)
+
+```
+
+```{r}
+#score <- predict(reg_log,merge_data[-trainIndex,-1],type="prob")[,"1"]
+##objet roc
+#roc_obj <- roc(merge_data[-trainIndex,"progress"]=="1",score)
+##plot de l'objet roc
+#plot(1-roc_obj$specificities,roc_obj$sensitivities,type="l")
+#abline(0,1)
+```
+
+### SVM
+
+```{r}
+confusionMatrix(data=predict(m_svm,newdata = data_test),reference=data_test$progress,positive="1")
+
+```
+
+## VERSION TOUT EN UN
+
+```{r}
+#fonction pour train-test
+#approche indique la technique de machine learning à évaluer
+evaluation <- function(approche,cv_number=3){
+ modele <- train(progress ~ ., data=data_train, trControl=trainControl(method="cv",number=cv_number), method=approche)
+ prediction <- predict(modele,newdata=data_test)
+ res <- confusionMatrix(data=prediction,reference=data_test$progress,positive="1")
+ return(c(max(modele$results[,"Accuracy"]),res$overall["Accuracy"]))
+}
+```
+
+```{r}
+#liste des méthodes à tester
+methodes <- c("glm","lda","svmLinear") # cforest, glmStepAIC, glmnet,logreg ...knn3
+#lancement de l'expérimentation
+perfs <- sapply(methodes,evaluation)
+#mise en forme des résultats
+colnames(perfs) <- methodes
+rownames(perfs) <- c("CV","Test set")
+#affichage
+print(perfs)
+```
+
