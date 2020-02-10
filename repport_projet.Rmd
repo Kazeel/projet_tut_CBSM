@@ -204,7 +204,7 @@ En effet, sur les `r nrow(data_physio)` individus du jeu de données de départ,
 Si nous pouvons par la suite discuter de l'intérêt de conserver des individus à qui il manque des données à T0 ou T1, il semble relativement logique de ce débarasser des individus sans données à T0 et T1 (il s'agit des personnes présentent seulement au temps T2), qui seront sans intérêt dans notre cos.
 
 ```{r, echo=FALSE}
-# on modifie les données de départ en se débarassant des personnes sans données en T0 et T1
+# on modifie  les données de départ en se débarassant des personnes sans données en T0 et T1
 data_physio<-data_physio[vec_na_T0_T1<=nb_var_T0,]
 data_physio[is.na(data_physio$`Numéro HRV`),"Numéro HRV"]<-c(9998,9999)
 data_physio<-data_physio[!(data_physio$`Numéro HRV`==87&data_physio$Groupe=="CBSM"),]
