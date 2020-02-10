@@ -175,6 +175,8 @@ Au final, au vu du faible de nombre de réponse pour le temps T2, nous avons dé
 
 #### Imputation
 
+
+
 ## Objectifs de l'analyse
 
 Ainsi, nos objectifs sont donc les suivants :
@@ -293,7 +295,7 @@ imput_T1<-cbind(data_physio[vec_na_T1==0,"Numéro HRV"],apply(data_physio[vec_na
 ### Imputation par la moyenne prévisionnelle
 
 ```{r, echo=FALSE}
-init_T1 = mice(imput_T1[,-1], maxit=0) 
+init_T1 = mice(imput_T1[,-1], maxit=0)    
 meth = init_T1$method
 predM = init_T1$predictorMatrix
 
