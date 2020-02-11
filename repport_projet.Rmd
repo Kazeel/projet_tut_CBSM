@@ -17,6 +17,7 @@ library(MASS)
 library(pROC)
 library(caret)
 library(kernlab)
+library(MLmetrics)
 
 # Fonctions
 
@@ -303,7 +304,229 @@ imputed_T1 <- mice(imput_T1[,-1], method=meth, predictorMatrix=predM, m=5)
 imput_T1_mean <- cbind(data_physio[vec_na_T1==0,"Numéro HRV"],complete(imputed_T1))
 ```
 
+
+```{r}
+summary(imput_T1[,-1])
+summary(imput_T1_mean[,-1])
+```
+
 <-- AUTRES METHODES ? --!>
+
+### Test de différentes méthodes
+
+### Création des valeurs NA dans le jeu de données complet
+
+```{r}
+T1_full<- imput_T1[apply(imput_T1,1,function(imput_T1) !any(is.na(imput_T1))),]
+T1P<-T1_full
+
+#T1P valeur complete
+#T1_full valeur avec données manquantes
+
+T1_full[9,2]<-NA
+T1_full[30,2]<-NA
+T1_full[36,3]<-NA
+T1_full[23,3]<-NA
+T1_full[26,4]<-NA
+T1_full[38,4]<-NA
+T1_full[38,5]<-NA
+T1_full[29,5]<-NA
+
+T1_full[43,6]<-NA
+T1_full[35,6]<-NA
+T1_full[1,7]<-NA
+T1_full[11,7]<-NA
+T1_full[8,8]<-NA
+T1_full[25,8]<-NA
+T1_full[20,9]<-NA
+T1_full[31,9]<-NA
+
+T1_full[34,10]<-NA
+T1_full[27,10]<-NA
+T1_full[37,11]<-NA
+T1_full[42,11]<-NA
+T1_full[28,11]<-NA
+T1_full[12,11]<-NA
+T1_full[14,6]<-NA
+T1_full[14,8]<-NA
+T1_full[12,5]<-NA
+
+```
+Nous avons créer un jeu de données contenant des valeurs manquantes afin de tester plus tard avec les différentes méthodes d'imputations laquelle minimise les erreurs de prédictions
+
+### Les 5 différentes méthodes testées: (pmm, cart, sample, mean, norm)
+```{r warning=TRUE, include=FALSE}
+# Predictive mean matching (pmm)
+init_T1P = mice(T1_full[,-1] ,maxit=0) 
+predM = init_T1P$predictorMatrix
+imputed_T1P <- mice(T1_full[,-1], method= c("pmm"), predictorMatrix=predM,  m=5)
+imput_T1P_pmm <- cbind(T1_full[,"Numéro HRV"],complete(imputed_T1P))
+
+
+R_pmm<-round(c(
+MSE(imput_T1P_pmm[,2],T1P[,2]),
+MSE(imput_T1P_pmm[,3],T1P[,3]),
+MSE(imput_T1P_pmm[,4],T1P[,4]),
+MSE(imput_T1P_pmm[,5],T1P[,5]),
+MSE(imput_T1P_pmm[,6],T1P[,6]),
+MSE(imput_T1P_pmm[,7],T1P[,7]),
+MSE(imput_T1P_pmm[,8],T1P[,8]),
+MSE(imput_T1P_pmm[,9],T1P[,9]),
+MSE(imput_T1P_pmm[,10],T1P[,10]),
+MSE(imput_T1P_pmm[,11],T1P[,11])
+) ,3)
+
+summary(T1P[,-1])
+summary(T1_full[,-1])
+summary(imput_T1P_pmm[,-1])
+
+```
+
+
+## Unconditional mean imputation (mean)
+```{r warning=TRUE, include=FALSE}
+
+init_T1P = mice(T1_full[,-1], maxit=5) 
+predM = init_T1P$predictorMatrix
+imputed_T1P <- mice(T1_full[,-1], method= c("mean"), predictorMatrix=predM,  m=5)
+imput_T1P_mean <- cbind(T1_full[,"Numéro HRV"],complete(imputed_T1P))
+
+R_mean<-round(c(
+MSE(imput_T1P_mean[,2],T1P[,2]),
+MSE(imput_T1P_mean[,3],T1P[,3]),
+MSE(imput_T1P_mean[,4],T1P[,4]),
+MSE(imput_T1P_mean[,5],T1P[,5]),
+MSE(imput_T1P_mean[,6],T1P[,6]),
+MSE(imput_T1P_mean[,7],T1P[,7]),
+MSE(imput_T1P_mean[,8],T1P[,8]),
+MSE(imput_T1P_mean[,9],T1P[,9]),
+MSE(imput_T1P_mean[,10],T1P[,10]),
+MSE(imput_T1P_mean[,11],T1P[,11])
+) ,3)
+
+summary(T1P[,-1])
+summary(T1_full[,-1])
+summary(imput_T1P_mean[,-1])
+
+```
+
+
+
+# Classification and regression trees(cart)
+```{r warning=TRUE, include=FALSE}
+
+init_T1P = mice(T1_full[,-1], maxit=5) 
+predM = init_T1P$predictorMatrix
+imputed_T1P <- mice(T1_full[,-1], method= c("cart"), predictorMatrix=predM,  m=5)
+imput_T1P_cart <- cbind(T1_full[,"Numéro HRV"],complete(imputed_T1P))
+
+R_cart<-round(c(
+MSE(imput_T1P_cart[,2],T1P[,2]),
+MSE(imput_T1P_cart[,3],T1P[,3]),
+MSE(imput_T1P_cart[,4],T1P[,4]),
+MSE(imput_T1P_cart[,5],T1P[,5]),
+MSE(imput_T1P_cart[,6],T1P[,6]),
+MSE(imput_T1P_cart[,7],T1P[,7]),
+MSE(imput_T1P_cart[,8],T1P[,8]),
+MSE(imput_T1P_cart[,9],T1P[,9]),
+MSE(imput_T1P_cart[,10],T1P[,10]),
+MSE(imput_T1P_cart[,11],T1P[,11])
+) ,3)
+
+summary(T1P[,-1])
+summary(T1_full[,-1])
+summary(imput_T1P_cart[,-1])
+
+```
+
+
+
+# Random sample from observed values(sample)
+```{r warning=TRUE, include=FALSE}
+
+init_T1P = mice(T1_full[,-1], maxit=5) 
+predM = init_T1P$predictorMatrix
+imputed_T1P <- mice(T1_full[,-1], method= c("sample"), predictorMatrix=predM,  m=5)
+imput_T1P_sample <- cbind(T1_full[,"Numéro HRV"],complete(imputed_T1P))
+
+
+R_sample<-round(c(
+MSE(imput_T1P_sample[,2],T1P[,2]),
+MSE(imput_T1P_sample[,3],T1P[,3]),
+MSE(imput_T1P_sample[,4],T1P[,4]),
+MSE(imput_T1P_sample[,5],T1P[,5]),
+MSE(imput_T1P_sample[,6],T1P[,6]),
+MSE(imput_T1P_sample[,7],T1P[,7]),
+MSE(imput_T1P_sample[,8],T1P[,8]),
+MSE(imput_T1P_sample[,9],T1P[,9]),
+MSE(imput_T1P_sample[,10],T1P[,10]),
+MSE(imput_T1P_sample[,11],T1P[,11])
+) ,3)
+
+summary(T1P[,-1])
+summary(T1_full[,-1])
+summary(imput_T1P_sample[,-1])
+```
+
+
+
+# Bayesian linear regression (norm)
+```{r warning=TRUE, include=FALSE}
+
+init_T1P = mice(T1_full[,-1], maxit=5) 
+predM = init_T1P$predictorMatrix
+imputed_T1P <- mice(T1_full[,-1], method= c("norm"), predictorMatrix=predM,  m=5)
+imput_T1P_norm <- cbind(T1_full[,"Numéro HRV"],complete(imputed_T1P))
+
+
+R_norm<-round(c(
+MSE(imput_T1P_norm[,2],T1P[,2]),
+MSE(imput_T1P_norm[,3],T1P[,3]),
+MSE(imput_T1P_norm[,4],T1P[,4]),
+MSE(imput_T1P_norm[,5],T1P[,5]),
+MSE(imput_T1P_norm[,6],T1P[,6]),
+MSE(imput_T1P_norm[,7],T1P[,7]),
+MSE(imput_T1P_norm[,8],T1P[,8]),
+MSE(imput_T1P_norm[,9],T1P[,9]),
+MSE(imput_T1P_norm[,10],T1P[,10]),
+MSE(imput_T1P_norm[,11],T1P[,11])
+) ,3)
+
+summary(T1P[,-1])
+summary(T1_full[,-1])
+summary(imput_T1P_norm[,-1])
+
+```
+
+
+Comparaison des différentes méthodes d'imputations
+```{r}
+R_mse<- cbind( R_pmm, R_mean, R_cart,R_sample,R_norm)
+R_compare<-cbind(R_mse, apply(R_mse, 1, min))
+View (R_compare)
+```
+
+Pour notre imputation de données nous avions choisi de faire un premier test de différentes méthodes d’imputation sur le jeu de données. En première étape il s’agit de de récupérer une partie du jeu de données assez complète afin de recréer des valeurs manquantes et de comparer plus tard les résultats des différentes méthodes d’imputations que nous allons effectuer sur le jeu de données. 
+
+Nous nous sommes basées sur la fonction MICE de la librairie mice qui renferme en elle différentes méthodes d’imputations. De cette liste de fonction, 5 types d’imputations ont été adoptés. Il s’agit de la Predictive mean matching PMM, la moyenne MEAN, Classification and regression trees CART, Random sample for observed values SAMPLE et une dernière le Bayesian Linear Regression NORM.
+
+Le critère de comparaison est assez sur la minimisation des erreurs de prédiction le MSE entre les valeurs prédites par les imputations et les valeurs réelles. 
+Et aussi en observant les statistiques descriptives avant et après les imputations.
+
+Pour le choix du meilleur modèle d’imputation, choisir celle qui minimise au mieux sur l’ensemble des 10 variables et aussi sur la variable RM_SSD.
+
+A la fin de ce test nous avons retenu 3 types d’imputations qui marchent le mieux. Le PMM et le Bayesian linear régression et la moyenne. Nous avions donc dégagé pour une première étape les trois méthodes qui seront choisies comme méthode à analyser.
+
+En statistique, la régression linéaire bayésienne est une approche de la régression linéaire dans laquelle l’analyse statistique est entreprise dans le contexte de l’inférence bayésienne.
+
+La méthode de la moyenne utilise la moyenne obtenue sans les valeurs manquantes et les impute la même valeur à l’ensemble des valeurs manquantes
+
+Par rapport aux méthodes standard basées sur la régression linéaire et la distribution normale, PMM produit des valeurs imputées qui ressemblent beaucoup plus à des valeurs réelles. Si la variable d'origine est asymétrique, les valeurs imputées seront également asymétriques. Si la variable d'origine est limitée par 0 et 100, les valeurs imputées seront également limitées par 0 et 100. Et si les valeurs réelles sont discrètes (comme le nombre d'enfants), les valeurs imputées seront également discrètes. En effet, les valeurs imputées sont des valeurs réelles qui sont «empruntées» à des individus disposant de données réelles.
+
+Cependant en faisant une analyse des trois méthodologies d’imputations nous observons que les deux premières méthodes à savoir la bayesienne et le PMM minimise au mieux mais restent instable quand à la prédiction des valeurs, ce qui n’est pas le cas pour la moyenne. Et également en comparant les statistiques descriptives des variables avant et après les imputations, la moyenne semble mieux conserver les statistiques. 
+Nous avons donc opté au final pour une imputation par la moyenne.
+
+
 
 ### Comparaison des méthodes
 
