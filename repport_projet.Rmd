@@ -316,7 +316,7 @@ summary(imput_T1_mean[,-1])
 
 ### Création des valeurs NA dans le jeu de données complet
 
-```{r}
+```{r, echo=FALSE}
 T1_full<- imput_T1[apply(imput_T1,1,function(imput_T1) !any(is.na(imput_T1))),]
 T1P<-T1_full
 
@@ -355,7 +355,7 @@ T1_full[12,5]<-NA
 Nous avons créer un jeu de données contenant des valeurs manquantes afin de tester plus tard avec les différentes méthodes d'imputations laquelle minimise les erreurs de prédictions
 
 ### Les 5 différentes méthodes testées: (pmm, cart, sample, mean, norm)
-```{r warning=TRUE, include=FALSE}
+```{r, echo=FALSE}
 # Predictive mean matching (pmm)
 init_T1P = mice(T1_full[,-1] ,maxit=0) 
 predM = init_T1P$predictorMatrix
@@ -384,7 +384,7 @@ summary(imput_T1P_pmm[,-1])
 
 
 ## Unconditional mean imputation (mean)
-```{r warning=TRUE, include=FALSE}
+```{r, echo=FALSE}
 
 init_T1P = mice(T1_full[,-1], maxit=5) 
 predM = init_T1P$predictorMatrix
@@ -413,7 +413,7 @@ summary(imput_T1P_mean[,-1])
 
 
 # Classification and regression trees(cart)
-```{r warning=TRUE, include=FALSE}
+```{r, echo=FALSE}
 
 init_T1P = mice(T1_full[,-1], maxit=5) 
 predM = init_T1P$predictorMatrix
@@ -442,7 +442,7 @@ summary(imput_T1P_cart[,-1])
 
 
 # Random sample from observed values(sample)
-```{r warning=TRUE, include=FALSE}
+```{r, echo=FALSE}
 
 init_T1P = mice(T1_full[,-1], maxit=5) 
 predM = init_T1P$predictorMatrix
@@ -466,12 +466,13 @@ MSE(imput_T1P_sample[,11],T1P[,11])
 summary(T1P[,-1])
 summary(T1_full[,-1])
 summary(imput_T1P_sample[,-1])
+
 ```
 
 
 
 # Bayesian linear regression (norm)
-```{r warning=TRUE, include=FALSE}
+```{r, echo=FALSE}
 
 init_T1P = mice(T1_full[,-1], maxit=5) 
 predM = init_T1P$predictorMatrix
@@ -517,7 +518,7 @@ Pour le choix du meilleur modèle d’imputation, choisir celle qui minimise au 
 
 A la fin de ce test nous avons retenu 3 types d’imputations qui marchent le mieux. Le PMM et le Bayesian linear régression et la moyenne. Nous avions donc dégagé pour une première étape les trois méthodes qui seront choisies comme méthode à analyser.
 
-En statistique, la régression linéaire bayésienne est une approche de la régression linéaire dans laquelle l’analyse statistique est entreprise dans le contexte de l’inférence bayésienne.
+La régression linéaire bayésienne est une approche de la régression linéaire dans laquelle l’analyse statistique est entreprise dans le contexte de l’inférence bayésienne.
 
 La méthode de la moyenne utilise la moyenne obtenue sans les valeurs manquantes et les impute la même valeur à l’ensemble des valeurs manquantes
 
@@ -526,7 +527,16 @@ Par rapport aux méthodes standard basées sur la régression linéaire et la di
 Cependant en faisant une analyse des trois méthodologies d’imputations nous observons que les deux premières méthodes à savoir la bayesienne et le PMM minimise au mieux mais restent instable quand à la prédiction des valeurs, ce qui n’est pas le cas pour la moyenne. Et également en comparant les statistiques descriptives des variables avant et après les imputations, la moyenne semble mieux conserver les statistiques. 
 Nous avons donc opté au final pour une imputation par la moyenne.
 
+### Imputation de T1 par la moyenne
 
+```{r, echo=FALSE}
+init_T1 = mice(imput_T1[,-1], maxit=0)    
+meth = init_T1$method
+predM = init_T1$predictorMatrix
+
+imputed_T1 <- mice(imput_T1[,-1], method="mean", predictorMatrix=predM, m=5)
+imput_T1_mean <- cbind(data_physio[vec_na_T1==0,"Numéro HRV"],complete(imputed_T1))
+```
 
 ### Comparaison des méthodes
 
@@ -534,6 +544,8 @@ Nous avons donc opté au final pour une imputation par la moyenne.
 summary(imput_T1[,-1])
 summary(imput_T1_mean[,-1])
 ```
+
+En observant par exemple pour la variable RMSSD avant imputation et après imputation, nous obtenons la même moyenne, ce qui est normal par rapport à la methode utilisée et la troisième quartile qui varie de 42 à 39, la médiane qui était de 26,5 passe à 27,4. Notre imputation n'a pas eu d'impact énorme sur notre jeu de données.
 
 ## Fichier final
 
