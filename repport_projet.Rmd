@@ -35,6 +35,27 @@ cherche.ext<-function(x,taille=2){
   # mais on va laisser le choix de la taille de cet intervalle (2 ou 3 sigma ?)
 }
 
+remplace.data<-function(x,random=TRUE,ligne=NA,colonne=NA,nombre=NA){
+  # permet de faire des trous dans un jeu de donnée
+  data<-x
+  
+  if (is.na(nombre)) {
+    nombre = floor(nrow(x)*ncol(x)*5/100)
+  }
+    
+  
+  if (random==TRUE) {
+    nombre = floor(nrow(x)*ncol(x)*5/100)
+    ligne<-sample(x = 1:nrow(x),size=nombre,replace = TRUE)
+    colonne<-sample(x = 1:ncol(x),size=nombre,replace = TRUE)
+  }
+  for (i in 1:lengthh(ligne)) {
+    data[ligne[i],colonne[i]]<-NA
+  }
+  
+  return(list("data"=data,"ligne"=ligne,"colonne"=colonne))
+}
+
 ```
 
 \newpage
@@ -327,6 +348,11 @@ T1P<-T1_full
 
 #T1P valeur complete
 #T1_full valeur avec données manquantes
+
+rowna<-c(9,30,36,23,26,38,38,29,43,35,1,7,11,8,25,20,31,34,27,37,42,28,12,14,12)
+colna<-c(2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,11,11,6,8,5)
+
+#J'ai fait une fonction pour simplifier ça
 
 T1_full[9,2]<-NA
 T1_full[30,2]<-NA
