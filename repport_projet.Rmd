@@ -20,7 +20,6 @@ library(kernlab)
 
 library(klaR)
 library(randomForest)
-=======
 library(MLmetrics)
 
 # Fonctions
@@ -570,6 +569,15 @@ Le but est de déterminer le meilleur modèle. Pour cela, nous envisageons plusi
 train_control <- trainControl(method = "LOOCV")
 ```
 
+## Regression logistique
+
+Pas sûr de la méthode sans avoir un tet après.
+
+```{r}
+m_glm<-train(progress~.,data = merge_data, method="glmStepAIC",trControl=train_control)
+#print(m_glm)
+print(m_glm)
+```
 ## SVM
 
 ```{r}
@@ -579,6 +587,13 @@ plot(m_svm,main="Modèle SVM")
 ```
 
 ## randomForest
+
+```{r}
+m_rf<-train(progress ~., data = merge_data, method="rf",trControl=train_control,tuneGrid=expand.grid(.mtry=c(2,3,6:10,12:21)))
+#print(m_rf)
+plot(m_rf,main="Modèle RandomForest")
+```
+
 
 
 ## Partition
@@ -591,14 +606,7 @@ data_test<-merge_data[-trainIndex,-c(1,18:33)]
 table(data_test$progress)
 ```
 
-## Regression logistique
 
-```{r}
-fitControl <- trainControl(method="cv",number=4)
-
-reg_log<-train(progress~.,data = data_train, method="glmStepAIC",trControl=fitControl)
-print(reg_log$finalModel)
-```
 
 ### Importance des variables
 
