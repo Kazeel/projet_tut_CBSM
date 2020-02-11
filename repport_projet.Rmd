@@ -17,11 +17,11 @@ library(MASS)
 library(pROC)
 library(caret)
 library(kernlab)
+
 library(klaR)
 library(randomForest)
 =======
 library(MLmetrics)
-
 
 # Fonctions
 
