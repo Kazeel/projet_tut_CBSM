@@ -22,6 +22,8 @@ library(klaR)
 library(randomForest)
 library(MLmetrics)
 
+#,j
+
 # Fonctions
 
 cherche.ext<-function(x,taille=2){
