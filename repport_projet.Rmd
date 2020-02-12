@@ -356,33 +356,7 @@ colna<-c(2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,11,11,6,8,5)
 
 #J'ai fait une fonction pour simplifier ça
 
-T1_full[9,2]<-NA
-T1_full[30,2]<-NA
-T1_full[36,3]<-NA
-T1_full[23,3]<-NA
-T1_full[26,4]<-NA
-T1_full[38,4]<-NA
-T1_full[38,5]<-NA
-T1_full[29,5]<-NA
 
-T1_full[43,6]<-NA
-T1_full[35,6]<-NA
-T1_full[1,7]<-NA
-T1_full[11,7]<-NA
-T1_full[8,8]<-NA
-T1_full[25,8]<-NA
-T1_full[20,9]<-NA
-T1_full[31,9]<-NA
-
-T1_full[34,10]<-NA
-T1_full[27,10]<-NA
-T1_full[37,11]<-NA
-T1_full[42,11]<-NA
-T1_full[28,11]<-NA
-T1_full[12,11]<-NA
-T1_full[14,6]<-NA
-T1_full[14,8]<-NA
-T1_full[12,5]<-NA
 
 ```
 Nous avons créer un jeu de données contenant des valeurs manquantes afin de tester plus tard avec les différentes méthodes d'imputations laquelle minimise les erreurs de prédictions
