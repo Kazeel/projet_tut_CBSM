@@ -204,6 +204,18 @@ Ainsi, nos objectifs sont donc les suivants :
 
 TODO
 
+#### SVM
+
+#### Random Forest
+
+A COMPLETER
+
+Les forêts d'arbres de décisions sont des méthodes d'apprentissage basé sur les concepts de bagging (ou bootstrap) et de sous-espaces aléatoire. Le principe est d'effectuer un apprentissage d'arbre de décision sur des sous-ensembles de données.
+
+L'arbre de décision est une méthode d'apprentissage qui cherche à découper nos données en sous-ensemble par des critères maxisimisant (selon les algorithmes) la différence entre les sous-ensembles. On sépare nos données selon une variable puis l'on réintère ce processus pour chaque sous-groupe.
+
+Ces méthodes sont assez courantes parmis les méthodes d'apprentissage supervisée.
+
 #### Leave-One-Out
 
 TODO
@@ -565,6 +577,8 @@ m_rf_loo<-train(progress ~., data = merge_data, method="rf",trControl=train_cont
 plot(m_rf_loo,main="Modèle RandomForest")
 ```
 
+Optimiser la méthode de forêt aléatoire avec la validation croisée "Leave One Out" n'est pas évidente. En effet, l'évaluation via un seul individu ne permet pas d'obtenir de résultat robuste dans ce cas là car le résultat dépend trop des variables choisies.
+
 ## Optimisation via Bootstrap
 
 ```{r}
@@ -599,4 +613,4 @@ m_rf_boot<-train(progress ~., data = merge_data, method="rf",trControl=train_con
 plot(m_rf_boot,main="Modèle RandomForest")
 ```
 
-Ici, l'av
+Même si l'aspect aléatoire de cette méthode rend encore difficile l'évaluation, l'utilisation du bootstrap permet néanmoins d'observer pluqs facilement une tendance : la diminution de la précision à mesure que l'on rajoute des variables.
