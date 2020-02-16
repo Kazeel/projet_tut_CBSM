@@ -7,7 +7,7 @@ output: pdf_document
 
 ```{r, echo=FALSE, include=FALSE}
 # Paramètre fixe
-set.seed(42)
+set.seed(10000)
 
 #Importation packages
 
@@ -21,8 +21,7 @@ library(kernlab)
 library(klaR)
 library(randomForest)
 library(MLmetrics)
-
-#,j
+library(missForest)
 
 # Fonctions
 
@@ -82,7 +81,7 @@ Les maladies cardiovasculaires sont un ensemble de troubles affectant le coeur e
 
 Si l'alimentation et le tabagisme sont des facteurs aggravant connus, de nombreuses études mettent en évidence l'existence d'un lien entre stress et maladies cardio-vasculaires. Ainsi, proposer des solutions agissant sur le stress et ne nécessitant pas une prise en charge lourde ou médicamenteuse peut permettre de soulager les personnes atteintes de problèmes cardiovasculaires.
 
-Or, il existe de nombreuses méthodes pour faciliter la gestion du stress, dont le CBSM.
+Or, il existe de nombreuses méthodes pour faciliter la gestion du stress, dont le programme CBSM.
 
 ## CBSM ou Cognitive Behavioral Stress Management
 
@@ -134,6 +133,7 @@ nb_var_T1<-length(num_var_T1)
 ```
 
 \newpage
+
 # Approche du problème
 
 ## Participants
@@ -152,7 +152,7 @@ Les patients sont recrutés par les équipes soignantes, les personnes acceptant
 
 Le programme CBSM est constitué de plusieurs séances (2h par semaine) avec en plus des excercices à réaliser chez soi. Après l'ensemble des séances, les patients sont invités à répondre à des questionnaires mesurant leur perception du stress puis des mesure physiologiques sont prises. Ces mesures sont prises avec un module BIOPAC MP 150 qui va permettre de relever plusieurs variables.
 
-Les mesures et les réponses aux questionnaires sont prises à différents moments :
+Les mesures et les réponses aux questionnaires sont pris à différents moments :
 
 * T0 : avant le début des séances CBSM
 * T1 : à la fin des 10 semaines d'interventions
@@ -174,23 +174,16 @@ Dans les études statistiques, le HRV est très souvent utlisé comme une variab
  
 Concernant la distribution des variables liées au HRV, la question de la normalité des variables est discutée. Mais des études tendent à observer une non normalité de la distribution de ces variables. La transformation logarithmique est alors une procédure courante pour remédier à ce problème.
 
-## Analyses
+## Limitations
 
-L'analyse va se dérouler en plusieurs étapes, chacune cherchant à répondre à une problèmatique :
-
-* Vérifier si il existe des différences à T0 entre nos groupes (les individus sont-ils homogènes au départ)
-* Vérifier si il existe des différences entre T0 et T1 entre nos groupe (est ce qu'il y a du progrès)
-
-### Limitations
-
-#### Erreurs
+### Erreurs
 
 Plusieurs problèmes apparaissent dans notre méthodologie :
 
 * Si au départ, nous devions avoir 3 groupes, au final, seulement 2 groupes existent effectivement : les groupes CBSM et CONTROLE. Ces deux groupes sont de tailles différentes. De plus, le groupe CONTROLE réalise des exercices de relaxation.
-* Des erreurs de mesures peuvent fausser nos résultats (erreurs de manipulation).De plus, nous faisons face à des individus sous médication ayant une pathologie cardiaque, les chances d'obtenir des valeurs extrêmes sont grandes. 
+* Des erreurs de mesures peuvent fausser nos résultats (erreurs de manipulation).De plus, nous faisons face à des individus sous médication ayant une pathologie cardiaque, les chances d'obtenir des valeurs aberantes sont grandes. 
 
-#### Durées de l'expérimentation
+### Durées de l'expérimentation
 
 Les individus de l'expérience ont été exposé au programme pendant 10 semaines, sans obligations d'être présent à toute les séances, ni obligation à réaliser les exercices à faire chez soi, cela limite donc l'influence du programme sur nos patients.
 
@@ -198,20 +191,30 @@ Enfin, cette étude est basée sur le bénévolat. Hormis la volonté des patien
 
 Au final, au vu du faible de nombre de réponse pour le temps T2, nous avons décider de limiter nos analyses à T0 et T1, ne nous permettant pas de constater des résultats sur le long terme.
 
-### Solutions face aux limitations
-
-#### Imputation
-
-#### Leave one out cross validation
-
-
-
 ## Objectifs de l'analyse
 
 Ainsi, nos objectifs sont donc les suivants :
 
-* Corriger les valeurs extrêmes de certains patients, pour cela
+* Corriger les valeurs aberantes de certains patients
 * Déterminer un modèle de prédiction de l'amélioration de l'état d'un individu.
+
+### Méthodes pour l'analyse
+
+#### Imputation
+
+TODO
+
+#### Leave-One-Out
+
+TODO
+
+#### Bootstrap
+
+A COMPLETER
+
+Avec le peu de données que nous risquons d'avoir au final, nous avons besoin d'une méthode nous assurant de contrôler la robustesse de nos méthodes. Le bootstrap est une méthode qui se base sur le reéchantillonage avec remise. Il s'agit de considérer nos données comme la distribution de la population (pour nous, les personnes atteintes de maladie cardiaque) et donc de tirer plusieurs échantillons au sein de cette distribution.
+
+Dans notre cas, le bootstrap est un moyen de contourner notre manque de données. Néanmoins, cette méthode dépend beaucoup de nos données de départ pour être efficace. Il faudra utiliser celle-ci avec parcimonie.
 
 \newpage
 
@@ -230,7 +233,7 @@ vec_na_T0_T1<-apply(X = data_physio[,num_var_T0[1]:num_var_T1[length(num_var_T1)
 
 En effet, sur les `r nrow(data_physio)` individus du jeu de données de départ, `r sum(vec_na_T0==17)` n'ont pas de valeurs à T0, `r sum(vec_na_T1==17)` n'ont pas de données à T1 et `r sum(vec_na_T0_T1==34)` n'ont pas de données à T0 et T1.
 
-Si nous pouvons par la suite discuter de l'intérêt de conserver des individus à qui il manque des données à T0 ou T1, il semble relativement logique de ce débarasser des individus sans données à T0 et T1 (il s'agit des personnes présentent seulement au temps T2), qui seront sans intérêt dans notre cos.
+Si nous pouvons par la suite discuter de l'intérêt de conserver des individus à qui il manque des données à T0 ou T1, il semble relativement logique de ce débarasser des individus sans données à T0 et T1 (il s'agit des personnes présentent seulement au temps T2), qui seront sans intérêt dans notre cas.
 
 ```{r, echo=FALSE}
 # on modifie  les données de départ en se débarassant des personnes sans données en T0 et T1
@@ -282,7 +285,6 @@ Regardons le taux de valeur abérante pour chaque varialbe à T0
 ```{r, echo=FALSE}
 # FAIRE UN JOLIE TABLEAU !!
 apply(imput_T0[,-1],2,function(x){sum(is.na(x))/length(x)*100})
-
 ```
 On observe que majoritairement, nous n'avons pas de de variables avec un pourcentage trop important (au dela de 10%) de valeur abérante. Nous allons donc imputer l'ensemble des variables.
 
@@ -360,7 +362,7 @@ Nous avons créer un jeu de données contenant des valeurs manquantes afin de te
 # Predictive mean matching (pmm)
 
 ```{r, echo=FALSE}
-set.seed(10000)
+
 
 init_T1P = mice(T1_full ,maxit=5) 
 predM = init_T1P$predictorMatrix
@@ -379,8 +381,6 @@ summary(imput_T1P_pmm)
 
 
 ## Unconditional mean imputation (mean)
-
-set.seed(10000)
 
 init_T1P = mice(T1_full ,maxit=5) 
 predM = init_T1P$predictorMatrix
@@ -401,8 +401,6 @@ summary(imput_T1P_mean)
 
 
 # Random Forest
-
-set.seed(10000)
 
 init_T1P = mice(T1_full ,maxit=5) 
 predM = init_T1P$predictorMatrix
@@ -443,9 +441,6 @@ summary(imput_T1P_sample)
 
 
 # Bayesian linear regression (norm)
-
-set.seed(10000)
-
 
 init_T1P = mice(T1_full ,maxit=5) 
 predM = init_T1P$predictorMatrix
@@ -501,12 +496,9 @@ Au bout de 10 répétitions nous remarquons que la méthode de la moyenne prévi
 
 Notre jeu de données sera imputée par la méthode de la moyenne prévisionnelle.
 
-
-
 ### Imputation de T1 par la regression linéaire bayesienne
 
 ```{r, echo=FALSE}
-set.seed(1000)
 init_T1 = mice(imput_T1[,-1], maxit=0)    
 meth = init_T1$method
 predM = init_T1$predictorMatrix
@@ -529,137 +521,82 @@ En observant par exemple pour la variable RMSSD avant imputation et après imput
 IL SEMBLE Y AVOIR UN PROBLEME AVOIR LA PREDICTION DE LA FREQUENCE RESPIRATOIRE. POUR LE MOMENT ELLE EST ENLEVE
 
 ```{r,echo=FALSE}
+# => ENTREE : imput de T0 et imput de T1
+
 merge_data<-merge(imput_T0_mean[imput_T0_mean$`Numéro HRV` %in% imput_T1_mean$`Numéro HRV`,-18],imput_T1_mean[,-18],by="Numéro HRV")
 merge_data$"progress"<-as.factor(ifelse(merge_data$T0_RMSSD_ms>merge_data$T1_RMSSD_ms,1,0))
 print(table(merge_data$progress)/nrow(merge_data))
+
+# => SORTIE : données finale avec une colonne progress pour indiquer si oui ou non il y a progré
 ```
 
 # Construction de modèles
 
 Le but est de déterminer le meilleur modèle. Pour cela, nous envisageons plusieurs méthodes. Pour chacune, nous devons en général rechercher l'hyper paramètre optimal.
+
+## Optimisation via Leave one Out
+
 ```{r}
 train_control <- trainControl(method = "LOOCV")
 ```
 
-## Regression logistique
+### Regression logistique
 
 Pas sûr de la méthode sans avoir un tet après.
 
-```{r}
-m_glm<-train(progress~.,data = merge_data, method="glmStepAIC",trControl=train_control)
+```{r,echo=FALSE}
+m_glm<-train(progress~.,data = merge_data, method="glmStepAIC",trControl=train_control, trace=FALSE)
 #print(m_glm)
 print(m_glm)
 ```
-## SVM
+### SVM
 
 ```{r}
-m_svm <- train(progress ~., data = merge_data, method="svmLinear",trControl=train_control,tuneGrid=data.frame(C=c(0.05,0.1,1:18)))
-#print(m_svm)
-plot(m_svm,main="Modèle SVM")
+m_svm_loo <- train(progress ~., data = merge_data, method="svmLinear",trControl=train_control,tuneGrid=data.frame(C=c(0.05,0.1,1:18)))
+#print(m_svm_loo)
+plot(m_svm_loo,main="Modèle SVM")
 ```
 
-## randomForest
+### randomForest
 
 ```{r}
-m_rf<-train(progress ~., data = merge_data, method="rf",trControl=train_control,tuneGrid=expand.grid(.mtry=c(2,3,6:10,12:21)))
+m_rf_loo<-train(progress ~., data = merge_data, method="rf",trControl=train_control,tuneGrid=expand.grid(.mtry=c(2,3,6:10,12:21)))
 #print(m_rf)
-plot(m_rf,main="Modèle RandomForest")
+plot(m_rf_loo,main="Modèle RandomForest")
 ```
 
-
-
-## Partition
+## Optimisation via Bootstrap
 
 ```{r}
-trainIndex <- createDataPartition(merge_data$progress,p=0.77,list=F)
-data_train<-merge_data[trainIndex,-c(1,18:33)]
-table(data_train$progress)
-data_test<-merge_data[-trainIndex,-c(1,18:33)]
-table(data_test$progress)
+train_control <- trainControl(method = "boot", number=100)
 ```
-
-
-
-### Importance des variables
-
-```{r}
-print(varImp(reg_log))
-```
-
-### Modele final
-
-```{r}
-reg_log$finalModel
-```
-
-## SVM
-
-```{r}
-#paramètres d'apprentissage
-fitControl <- trainControl(method="cv",number=5)
-#modélisation avec paramètre de la technique d'apprentissage
-#SVM avec noyau linéaire, C = 0.1
-m_svm <- train(progress ~ ., data =
-data_train,method="svmLinear",trControl=fitControl,tuneGrid=data.frame(C=c(0.05,0.1,0.5,1,10)))
-print(m_svm)
-
-```
-
-
-## Test
 
 ### Regression logistique
 
-```{r}
-reg_log$resample
-```
+Pas sûr de la méthode sans avoir un tet après.
 
-
-```{r}
-reg_log_pred<-predict(reg_log,newdata=data_test)
-mat <- confusionMatrix(data=reg_log_pred,reference=data_test$progress,positive="1")
-print(mat)
-
-```
-
-```{r}
-#score <- predict(reg_log,merge_data[-trainIndex,-1],type="prob")[,"1"]
-##objet roc
-#roc_obj <- roc(merge_data[-trainIndex,"progress"]=="1",score)
-##plot de l'objet roc
-#plot(1-roc_obj$specificities,roc_obj$sensitivities,type="l")
-#abline(0,1)
+```{r,echo=FALSE}
+m_glm<-train(progress~.,data = merge_data, method="glmStepAIC",trControl=train_control, trace=FALSE)
+#print(m_glm)
+print(m_glm)
 ```
 
 ### SVM
 
 ```{r}
-confusionMatrix(data=predict(m_svm,newdata = data_test),reference=data_test$progress,positive="1")
-
+m_svm_boot <- train(progress ~., data = merge_data, method="svmLinear",trControl=train_control,tuneGrid=data.frame(C=c(0.05,0.1,1:18)))
+#print(m_svm)
+plot(m_svm_boot,main="Modèle SVM")
 ```
 
-## VERSION TOUT EN UN
+On observe ici que l'optimisation du paramètre C avec le bootstrap renvoie le même résultat. On obtient des résultats équivalent. Le bootstrap n'apporte donc rien de plus que le leave one out.
+
+### randomForest
 
 ```{r}
-#fonction pour train-test
-#approche indique la technique de machine learning à évaluer
-evaluation <- function(approche,cv_number=3){
- modele <- train(progress ~ ., data=data_train, trControl=trainControl(method="cv",number=cv_number), method=approche)
- prediction <- predict(modele,newdata=data_test)
- res <- confusionMatrix(data=prediction,reference=data_test$progress,positive="1")
- return(c(max(modele$results[,"Accuracy"]),res$overall["Accuracy"]))
-}
+m_rf_boot<-train(progress ~., data = merge_data, method="rf",trControl=train_control,tuneGrid=expand.grid(.mtry=c(2,3,6:10,12:21)))
+#print(m_rf)
+plot(m_rf_boot,main="Modèle RandomForest")
 ```
 
-```{r}
-#liste des méthodes à tester
-methodes <- c("glm","lda","svmLinear") # cforest, glmStepAIC, glmnet,logreg ...knn3
-#lancement de l'expérimentation
-perfs <- sapply(methodes,evaluation)
-#mise en forme des résultats
-colnames(perfs) <- methodes
-rownames(perfs) <- c("CV","Test set")
-#affichage
-print(perfs)
-```
-
+Ici, l'av
