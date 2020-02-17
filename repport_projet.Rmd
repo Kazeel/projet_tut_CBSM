@@ -225,7 +225,9 @@ Ces méthodes sont assez courantes parmis les méthodes d'apprentissage supervis
 
 #### Leave-One-Out
 
-La validation croisée est une méthode d'estimation de la fiabilité basé sur une technique d'échantillonage. Le principe est de découper nos données d'entrainements en plusieurs partition. A chaque itération, on utilisera une partition comme test et les autres comme données pour entrainer le modèle
+La validation croisée est une méthode d'estimation de la fiabilité basé sur une technique d'échantillonage. Le principe est de découper nos données d'entrainements en plusieurs partition. A chaque itération, on utilisera une partition comme test et les autres comme données pour entrainer le modèle.
+
+Le leave-one-out est un cas particulier de la validation croisée où l'on considère chaque individus comme une partition. Pour des jeux de données restreints, il permet de réaliser une validation croisée sans avoir un problème lors de l'entrainement (où l'on risquerai d'avoir très peu de données en réduisant plus encore la taille de l'échantillon d'apprentissage).
 
 #### Bootstrap
 
