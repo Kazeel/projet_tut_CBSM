@@ -105,8 +105,8 @@ Le but de cette étude est donc d'analyser l'influence  du programme sur le stre
 ```{r, echo=FALSE, results='hide',warning=FALSE}
 # Importation des données
 
-#data_physio <- read_excel("./data/datas_physio_cbsm.xlsx",sheet=2)
-data_physio <- read_excel("/Users/khadija/Desktop/Stage_HRV/CBSM cardio-data/Fichiers_CBSM_data_Excel/datas_physio_cbsm.xlsx",sheet=2)
+data_physio <- read_excel("./data/datas_physio_cbsm.xlsx",sheet=2)
+#data_physio <- read_excel("/Users/khadija/Desktop/Stage_HRV/CBSM cardio-data/Fichiers_CBSM_data_Excel/datas_physio_cbsm.xlsx",sheet=2)
 # Formattage des noms des colonnes
 
 # PHYSIO
@@ -230,8 +230,6 @@ La validation croisée est une méthode d'estimation de la fiabilité basé sur 
 Le leave-one-out est un cas particulier de la validation croisée où l'on considère chaque individus comme une partition. Pour des jeux de données restreints, il permet de réaliser une validation croisée sans avoir un problème lors de l'entrainement (où l'on risquerai d'avoir très peu de données en réduisant plus encore la taille de l'échantillon d'apprentissage).
 
 #### Bootstrap
-
-A COMPLETER
 
 Avec le peu de données que nous risquons d'avoir au final, nous avons besoin d'une méthode nous assurant de contrôler la "robustesse" de nos méthodes. Le bootstrap est une méthode qui se base sur le reéchantillonage avec remise. Il s'agit de considérer nos données comme la distribution de la population (pour nous, les personnes atteintes de maladie cardiaque) et donc de tirer plusieurs échantillons au sein de cette distribution.
 
@@ -687,8 +685,8 @@ ppp=pp[,-1]
 imp_data <- mice(ppp, m=1, maxit = 5, method = 'pmm', seed = 500)
 densityplot(imp_data)
 final <- complete(imp_data)
-NuméroHRV=pp[,1]
-final=cbind(NuméroHRV,final)
+NumeroHRV=pp[,1]
+final=cbind(NumeroHRV,final)
 #View(final)
 
 ```
@@ -708,13 +706,15 @@ En observant par exemple pour la variable RMSSD avant imputation et après imput
 ```{r,echo=FALSE}
 T0=final[,c(1:11)]
 T1=final[,c(1,12:21)]
-final=cbind(NuméroHRV,final) #fichier qui combine les T0 et T1
+final=cbind(NumeroHRV,final) #fichier qui combine les T0 et T1
 
 # => ENTREE : imput de T0 et imput de T1
 
 #merge_data<-merge(T0[T0$`NuméroHRV` %in% T1$`NuméroHRV`,-18],T1[,-18],by="NuméroHRV")
 merge_data=final
 merge_data$"progress"<-as.factor(ifelse(merge_data$T0_RMSSD_ms>merge_data$T1_RMSSD_ms,1,0))
+
+merge_data <- merge_data[,-c(1,2)]
 
 print(table(merge_data$progress)/nrow(merge_data))
 
@@ -768,9 +768,13 @@ print("pval"); pval_boot; print("M0"); M0_boot; print("M1"); M1_boot;
 
 # Construction de modèles
 
-Le but est de déterminer le meilleur modèle. Pour cela, nous envisageons plusieurs méthodes. Pour chacune, nous devons en général rechercher l'hyper paramètre optimal.
+Maintenant que nous avons imputé nos variables, nous pouvons chercher à créer un modèle pour prédire si une personne a vu sa condition physique s'améliorée.
+
+Avec moins d'une cinquantaine d'individus dans nos résultats finaux, nous décidons de simplement chercher un modèle avec l'ensemble de nos données. Il faudra alors espérer avoir plus d'individus dans le futur afin de tester nos modèles.
 
 ## Optimisation via Leave one Out
+
+Nous allons chercher ici à optimiser nos modèles via la validation croisée. La méthode de validation croisée Leave one out permet de faire des tests avec peu d'individus.
 
 ```{r}
 train_control <- trainControl(method = "LOOCV")
@@ -787,11 +791,13 @@ print(m_glm)
 ```
 ### SVM
 
-```{r}
+```{r, echo=FALSE}
 m_svm_loo <- train(progress ~., data = merge_data, method="svmLinear",trControl=train_control,tuneGrid=data.frame(C=c(0.05,0.1,1:18)))
 #print(m_svm_loo)
 plot(m_svm_loo,main="Modèle SVM")
 ```
+
+Avec le SVM, nous obtenons une très bonne accuracy (jusqu'à 90% selon l'hyper paramètre). C'est un excellent résultat dans notre cas.
 
 ### randomForest
 
@@ -805,7 +811,10 @@ Optimiser la méthode de forêt aléatoire avec la validation croisée "Leave On
 
 ## Optimisation via Bootstrap
 
-```{r}
+Ici, nous allons utiliser une autre méthode, le bootstrap pour essayer de contourner notre problème de manque de donnée.
+
+
+```{r,echo=FALSE}
 train_control <- trainControl(method = "boot", number=100)
 ```
 
@@ -821,13 +830,13 @@ print(m_glm)
 
 ### SVM
 
-```{r}
+```{r,echo=FALSE}
 m_svm_boot <- train(progress ~., data = merge_data, method="svmLinear",trControl=train_control,tuneGrid=data.frame(C=c(0.05,0.1,1:18)))
 #print(m_svm)
 plot(m_svm_boot,main="Modèle SVM")
 ```
 
-On observe ici que l'optimisation du paramètre C avec le bootstrap renvoie le même résultat. On obtient des résultats équivalent. Le bootstrap n'apporte donc rien de plus que le leave one out.
+On observe ici que l'optimisation du paramètre C avec le bootstrap renvoie plus ou moins le même résultat pour le choix de l'hyper paramètre (le paramètre peut varier mais reste dans le même ordre de grandeur). Néanmoins, la précision est en général plus faible que avec le Leave One Out. On peut supposer que la plus grande diversité d'échantillon dans nos tests dû à la méthode en est la cause. Mais nous conservons des résultats concluants (bonne précision)
 
 ### randomForest
 
@@ -837,4 +846,6 @@ m_rf_boot<-train(progress ~., data = merge_data, method="rf",trControl=train_con
 plot(m_rf_boot,main="Modèle RandomForest")
 ```
 
-Même si l'aspect aléatoire de cette méthode rend encore difficile l'évaluation, l'utilisation du bootstrap permet néanmoins d'observer pluqs facilement une tendance : la diminution de la précision à mesure que l'on rajoute des variables.
+Même si l'aspect aléatoire de cette méthode rend encore difficile l'évaluation, l'utilisation du bootstrap permet néanmoins d'observer plus facilement une tendance : la diminution de la précision à mesure que l'on rajoute des variables.
+
+# Conclusion
