@@ -654,26 +654,6 @@ summary(imput_T1P_pmm)
 
 Notre jeu de données sera imputée par la méthode de la moyenne prévisionnelle.
 
-### Imputation de T1 par la regression linéaire bayesienne
-
-```{r, echo=FALSE}
-init_T1 = mice(imput_T1[,-1], maxit=0)    
-meth = init_T1$method
-predM = init_T1$predictorMatrix
-
-imputed_T1 <- mice(imput_T1[,-1], method="pmm", predictorMatrix=predM, m=5)
-imput_T1_pmm <- cbind(data_physio[vec_na_T1==0,"Numéro HRV"],complete(imputed_T1))
-```
-
-### Comparaison des méthodes
-
-```{r, echo=FALSE}
-summary(imput_T1[,-1])
-summary(imput_T1_pmm[,-1])
-```
-
-En observant par exemple pour la variable RMSSD avant imputation et après imputation, nous obtenons une moyenne de 41,1 contre 39,9 précédemment, ce qui est acceptable par rapport à la methode utilisée et la troisième quartile qui varie de 42 à 43,82 , la médiane qui était de 26,5 passe à 27,4. Notre imputation n'a pas eu d'impact énorme sur notre jeu de données.
-
 ## Fichier final
 
 ```{r cars}
@@ -717,6 +697,7 @@ print("#####################################################################")
 print("RMSSD Après Imputation")
 summary(final[,16])
 ```
+En observant par exemple pour la variable RMSSD avant imputation et après imputation, nous obtenons une moyenne de 41,1 contre 39,9 précédemment, ce qui est acceptable par rapport à la methode utilisée et la troisième quartile qui varie de 42 à 43,82 , la médiane qui était de 26,5 passe à 27,4. Notre imputation n'a pas eu d'impact énorme sur notre jeu de données.
 
 ```{r,echo=FALSE}
 T0=final[,c(1:11)]
