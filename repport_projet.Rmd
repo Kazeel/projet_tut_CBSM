@@ -209,11 +209,15 @@ TODO
 
 #### SVM
 
+Cette méthode sera utilisé dans le cadre de la recherche d'un modèle de prédiction.
+
+Les séparateurs à vaste marge sont des techniques d'apprentissage supervisé destinées à résoudre des problèmes de discimination et de regression. Le principe est de chercher une frontière entre nos groups qui maximisent la marge, c'est à dire la distance entre la frontière et les éléments les plus proches.
+
 #### Random Forest
 
-A COMPLETER
+Cette méthode sera utilisé dans le cadre de la recherche d'un modèle de prédiction 
 
-Les forêts d'arbres de décisions sont des méthodes d'apprentissage basé sur les concepts de bagging (ou bootstrap) et de sous-espaces aléatoire. Le principe est d'effectuer un apprentissage d'arbre de décision sur des sous-ensembles de données.
+Les forêts d'arbres de décisions sont des méthodes d'apprentissage basées sur les concepts de bagging (ou bootstrap) et de sous-espaces aléatoire. Le principe est d'effectuer un apprentissage d'arbre de décision sur des sous-ensembles de données.
 
 L'arbre de décision est une méthode d'apprentissage qui cherche à découper nos données en sous-ensemble par des critères maxisimisant (selon les algorithmes) la différence entre les sous-ensembles. On sépare nos données selon une variable puis l'on réintère ce processus pour chaque sous-groupe.
 
@@ -221,13 +225,13 @@ Ces méthodes sont assez courantes parmis les méthodes d'apprentissage supervis
 
 #### Leave-One-Out
 
-TODO
+
 
 #### Bootstrap
 
 A COMPLETER
 
-Avec le peu de données que nous risquons d'avoir au final, nous avons besoin d'une méthode nous assurant de contrôler la robustesse de nos méthodes. Le bootstrap est une méthode qui se base sur le reéchantillonage avec remise. Il s'agit de considérer nos données comme la distribution de la population (pour nous, les personnes atteintes de maladie cardiaque) et donc de tirer plusieurs échantillons au sein de cette distribution.
+Avec le peu de données que nous risquons d'avoir au final, nous avons besoin d'une méthode nous assurant de contrôler la "robustesse" de nos méthodes. Le bootstrap est une méthode qui se base sur le reéchantillonage avec remise. Il s'agit de considérer nos données comme la distribution de la population (pour nous, les personnes atteintes de maladie cardiaque) et donc de tirer plusieurs échantillons au sein de cette distribution.
 
 Dans notre cas, le bootstrap est un moyen de contourner notre manque de données. Néanmoins, cette méthode dépend beaucoup de nos données de départ pour être efficace. Il faudra utiliser celle-ci avec parcimonie.
 
