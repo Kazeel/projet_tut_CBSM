@@ -225,7 +225,7 @@ Ces méthodes sont assez courantes parmis les méthodes d'apprentissage supervis
 
 #### Leave-One-Out
 
-
+La validation croisée est une méthode d'estimation de la fiabilité basé sur une technique d'échantillonage. Le principe est de découper nos données d'entrainements en plusieurs partition. A chaque itération, on utilisera une partition comme test et les autres comme données pour entrainer le modèle
 
 #### Bootstrap
 
