@@ -872,17 +872,19 @@ roc_glm_loo <- ggplot(m_glm_loo$pred, aes(m=yes, d=factor(obs, levels = c("yes",
   geom_roc(n.cuts=0) + 
   coord_equal() +
   style_roc()+
-  ggtitle("ROC GLM avec LOO")+
-  annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_glm_loo))$AUC, 4)))
+  ggtitle("ROC GLM avec LOO")
+  
+roc_glm_loo_f <-roc_glm_loo + annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_glm_loo))$AUC, 4)))
 
 roc_glm_boot <- ggplot(m_glm_boot$pred, aes(m=yes, d=factor(obs, levels = c("yes", "no")))) + 
   geom_roc(n.cuts=0) + 
   coord_equal() +
   style_roc()+
-  ggtitle("ROC GLM avec Bootstrap")+ 
-  annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_glm_boot))$AUC, 4)))
+  ggtitle("ROC GLM avec Bootstrap")
 
-grid.arrange(roc_glm_loo,roc_glm_boot, nrow=1, ncol=2)
+roc_glm_boot_f <-roc_glm_boot + annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_glm_boot))$AUC, 4)))
+
+grid.arrange(roc_glm_loo_f,roc_glm_boot_f, nrow=1, ncol=2)
 ```
 
 Dans l'ensemble, on peut supposer que l'AUC de la regression logistique est d'environ 0.55 .
@@ -892,18 +894,19 @@ roc_svm_loo <- ggplot(m_svm_loo$pred, aes(m=yes, d=factor(obs, levels = c("yes",
   geom_roc(n.cuts=0) + 
   coord_equal() +
   style_roc()+
-  ggtitle("ROC SVM avec Leave one out")+ 
-  annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_svm_loo))$AUC, 4)))
+  ggtitle("ROC SVM avec Leave one out")
+
+roc_svm_loo_f <-roc_svm_loo + annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_svm_loo))$AUC, 4)))
 
 roc_svm_boot <- ggplot(m_svm_boot$pred, aes(m=yes, d=factor(obs, levels = c("yes", "no")))) + 
   geom_roc(n.cuts=0) + 
   coord_equal() +
   style_roc()+
-  ggtitle("ROC SVM avec Bootstrap")+ 
-  annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_svm_boot))$AUC, 4)))
+  ggtitle("ROC SVM avec Bootstrap")
 
+roc_svm_boot_f <-roc_svm_boot + annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_svm_boot))$AUC, 4)))
 
-grid.arrange(roc_svm_loo,roc_svm_boot, nrow=1, ncol=2)
+grid.arrange(roc_svm_loo-f,roc_svm_boot_f, nrow=1, ncol=2)
 ```
 
 Dans l'ensemble, on peut supposer que l'AUC du SVM est d'environ 0.48 . C'est moins qu'avec la regression logistique.
@@ -913,17 +916,19 @@ roc_rf_loo <- ggplot(m_rf_loo$pred, aes(m=yes, d=factor(obs, levels = c("yes", "
   geom_roc(n.cuts=0) + 
   coord_equal() +
   style_roc()+
-  ggtitle("ROC Random Forest avec LOO")+ 
-  annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_rf_loo))$AUC, 4)))
+  ggtitle("ROC Random Forest avec LOO")
+
+roc_rf_loo_f <-roc_rf_loo + annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_rf_loo))$AUC, 4)))
 
 roc_rf_boot <- ggplot(m_rf_boot$pred, aes(m=yes, d=factor(obs, levels = c("yes", "no")))) + 
   geom_roc(n.cuts=0) + 
   coord_equal() +
   style_roc()+
-  ggtitle("ROC Random Forest avec Bootstrap")+ 
-  annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_rf_boot))$AUC, 4)))
+  ggtitle("ROC Random Forest avec Bootstrap")
 
-grid.arrange(roc_rf_loo,roc_rf_boot, nrow=1, ncol=2)
+roc_rf_boot_f <-roc_rf_boot + annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_rf_boot))$AUC, 4)))
+
+grid.arrange(roc_rf_loo_f,roc_rf_boot_f, nrow=1, ncol=2)
 ```
 
 Dans l'ensemble, on peut supposer que l'AUC du random Forest est d'environ 0.43, c'est encore inférieur au SVM et à la regression logistique.
