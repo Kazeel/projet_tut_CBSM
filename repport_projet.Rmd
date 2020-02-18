@@ -721,8 +721,6 @@ merge_data=final
 merge_data$"progress"<-as.factor(ifelse(merge_data$T0_RMSSD_ms>merge_data$T1_RMSSD_ms,1,0))
 levels(merge_data$"progress")<-c("yes","no")
 
-merge_data <- merge_data[,-c(1,2)]
-
 print(table(merge_data$progress)/nrow(merge_data))
 
 # => SORTIE : données finale avec une colonne progress pour indiquer si oui ou non il y a progré
@@ -775,7 +773,7 @@ print("pval"); pval_boot; print("M0"); M0_boot; print("M1"); M1_boot;
 
 # Construction de modèles
 
-Maintenant que nous avons imputé nos variables, nous pouvons chercher à créer un modèle pour prédire si une personne a vu sa condition physique s'améliorée.
+Maintenant que nous avons imputé nos variables, nous pouvons chercher à créer un modèle pour prédire si une personne a vu sa condition physique s'améliorée. Pour cela, nous n'utilisons que les variables du temps T0.
 
 Avec moins d'une cinquantaine d'individus dans nos résultats finaux, nous décidons de simplement chercher un modèle avec l'ensemble de nos données. Il faudra alors espérer avoir plus d'individus dans le futur afin de tester nos modèles.
 
@@ -784,7 +782,11 @@ Avec moins d'une cinquantaine d'individus dans nos résultats finaux, nous déci
 Nous allons chercher ici à optimiser nos modèles via la validation croisée. La méthode de validation croisée Leave one out permet de faire des tests avec peu d'individus.
 
 ```{r,echo=FALSE}
-train_control <- trainControl(method = "LOOCV")
+merge_data <- merge_data[,!(colnames(merge_data)%in%c("NumeroHRV","T1_Mean_RR_ms","T1_STD_RR_ms","T1_Mean_HR_1_min","T1_STD_HR_1_min","T1_RMSSD_ms",
+"T1_VLF_ms2","T1_LF_ms2","T1_HF_ms2","T1_VLF_pourcent","T1_LF_pourcent","T1_HF_pourcent","T1_LF_nu",
+"T1_HF_nu","T1_Total_power_ms2","T1_LF_HF_ratio","T1_EDR_Hz","T1_Frequence_Respiratoire"))]
+
+train_control <- trainControl(method = "LOOCV",classProbs=T,savePredictions = T)
 ```
 
 ### Regression logistique
@@ -793,75 +795,87 @@ La première méthode que nous allons utiliser ici est la regression logistique 
 
 ```{r,echo=FALSE,warning=FALSE}
 m_glm_loo<-train(progress~.,data = merge_data, method="glmStepAIC",trControl=train_control, trace=FALSE)
-print(m_glm_loo)
 ```
+
+La précision de notre modèle est d'environ `r m_glm_loo$results$Accuracy`, ce qui est légèrement meilleur qu'un modèle renvoyant toujours la même prédiction avec nos données. Les variables conservée sont les variables RMSSD, VLF, HF, Mean HR, STD RR. Les variables conservées sont principalement celles que l'on considère souvent comme assez importante dans la litterature scientifique. Parmis ce type de variable, seul LF a été écartée.
+
 ### SVM
 
 ```{r,echo=FALSE,warning=FALSE}
-m_svm_loo <- train(progress ~., data = merge_data, method="svmLinear",trControl=train_control,tuneGrid=data.frame(C=c(0.05,0.1,1:18)))
+m_svm_loo <- train(progress ~., data = merge_data, method="svmLinear",trControl=train_control,tuneGrid=data.frame(C=c(0.05,1:50)))
 #print(m_svm_loo)
 plot(m_svm_loo,main="Modèle SVM")
 ```
 
-Avec le SVM, nous obtenons une très bonne accuracy (proche de 90% selon l'hyper paramètre). C'est un excellent résultat dans notre cas.
+Le SVM ici a dans l'ensemble une accuracy proche ou inférieur à 50%. Vu nos données, cela signifie qu'il est moins bon qu'un predicteur prédisant toujours la même valeur.
 
 ### randomForest
 
 ```{r,echo=FALSE,warning=FALSE}
-m_rf_loo<-train(progress ~., data = merge_data, method="rf",trControl=train_control,tuneGrid=expand.grid(.mtry=c(2,3,6:10,12:21)))
+m_rf_loo<-train(progress ~., data = merge_data, method="rf",trControl=train_control,tuneGrid=expand.grid(.mtry=c(2,3,6:10,12:50)))
 #print(m_rf)
 plot(m_rf_loo,main="Modèle RandomForest")
 ```
 
-Optimiser la méthode de forêt aléatoire avec la validation croisée "Leave One Out" n'est pas évidente. En effet, l'évaluation via un seul individu ne permet pas d'obtenir de résultat robuste dans ce cas là car le résultat dépend trop des variables choisies.
+Optimiser la méthode de forêt aléatoire avec la validation croisée "Leave One Out" n'est pas évidente. En effet, l'évaluation via un seul individu ne permet pas d'obtenir de résultat robuste dans ce cas là car le résultat dépend trop des variables choisies. De plus, l'accuracy, qu'importe le nombre de variable, semble se stabiliser vers 50% ou moins, ce qui est actuellement moins efficace qu'un predicteur prédisant toujours la même variable dans notre cas.
 
 ## Optimisation via Bootstrap
 
 Ici, nous allons utiliser une autre méthode, le bootstrap pour essayer de contourner notre problème de manque de donnée.
 
-
 ```{r,echo=FALSE,warning=FALSE}
-train_control <- trainControl(method = "boot", number=100)
+train_control <- trainControl(method = "boot", number=100,classProbs=T,savePredictions = T)
 ```
 
 ### Regression logistique
 
-Pas sûr de la méthode sans avoir un tet après.
-
 ```{r,echo=FALSE,warning=FALSE}
 m_glm_boot<-train(progress~.,data = merge_data, method="glmStepAIC",trControl=train_control, trace=FALSE)
-#print(m_glm)
 print(m_glm_boot)
+m_glm_boot$finalModel
 ```
+
+La précision de notre modèle est d'environ `r m_glm_boot$results$Accuracy`, ce qui est légèrement meilleur qu'un modèle renvoyant toujours la même prédiction avec nos données. Les variables conservée sont les variables RMSSD, VLF, HF, Mean HR, STD RR. Les variables conservées sont principalement celles que l'on considère souvent comme assez importante dans la litterature scientifique. Parmis ce type de variable, seul LF a été écartée.
+
+Au final, on retrouve pratiquement le même résultat qu'avec le leave one out.
+
 
 ### SVM
 
 ```{r,echo=FALSE,warning=FALSE}
-m_svm_boot <- train(progress ~., data = merge_data, method="svmLinear",trControl=train_control,tuneGrid=data.frame(C=c(0.05,0.1,1:18)))
+m_svm_boot <- train(progress ~., data = merge_data, method="svmLinear",trControl=train_control,tuneGrid=data.frame(C=c(0.05,0.1,1:50)))
 #print(m_svm)
 plot(m_svm_boot,main="Modèle SVM")
 ```
 
-On observe ici que l'optimisation du paramètre C avec le bootstrap renvoie plus ou moins le même résultat pour le choix de l'hyper paramètre (le paramètre peut varier mais reste dans le même ordre de grandeur). Néanmoins, la précision est en général plus faible que avec le Leave One Out. On peut supposer que la plus grande diversité d'échantillon dans nos tests dû à la méthode en est la cause. Mais nous conservons des résultats concluants (bonne précision)
+Le SVM ici a dans l'ensemble une accuracy proche ou inférieur à 50%. Vu nos données, cela signifie qu'il est moins bon qu'un predicteur prédisant toujours la même valeur.
 
 ### randomForest
 
 ```{r,echo=FALSE,warning=FALSE}
-m_rf_boot<-train(progress ~., data = merge_data, method="rf",trControl=train_control,tuneGrid=expand.grid(.mtry=c(2,3,6:10,12:21)))
+m_rf_boot<-train(progress ~., data = merge_data, method="rf",trControl=train_control,tuneGrid=expand.grid(.mtry=c(2,3,6:10,12:50)))
 #print(m_rf)
 plot(m_rf_boot,main="Modèle RandomForest")
 ```
 
-Même si l'aspect aléatoire de cette méthode rend encore difficile l'évaluation, l'utilisation du bootstrap permet néanmoins d'observer plus facilement une tendance : la diminution de la précision à mesure que l'on rajoute des variables.
+L'accuracy, qu'importe le nombre de variable, semble se stabiliser vers 50% ou moins, ce qui est actuellement moins efficace qu'un predicteur prédisant toujours la même variable dans notre cas.
 
 ## Comparaisons
+
+Nous avons vu que quelques soit les méthodes d'évaluation et de prédiction que nous utilisons, dans l'ensemble, nous obtenons souvent des résultats semblables, avec une précision proche de 50%. Nous allons maintenant terminer en comparant nos méthodes selon d'autres critères afin d'arrêter notre choix.
 
 ```{r,echo=FALSE}
 
 
-plot(roc(predictor=predict(m_glm_loo,merge_data,type="prob")$yes,
-               response=merge_data$progress,
-               levels=rev(levels(merge_data$progress))))
+
+ggplot(m_glm_loo$pred, aes(m=yes, d=factor(obs, levels = c("yes", "no")))) + 
+  geom_line(m_glm_boot$pred)
+  geom_roc(n.cuts=0) + 
+  coord_equal() +
+  style_roc()
+
+
+
 ```
 
 
