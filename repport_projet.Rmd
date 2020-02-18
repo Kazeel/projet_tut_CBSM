@@ -865,18 +865,73 @@ L'accuracy, qu'importe le nombre de variable, semble se stabiliser vers 50% ou m
 Nous avons vu que quelques soit les méthodes d'évaluation et de prédiction que nous utilisons, dans l'ensemble, nous obtenons souvent des résultats semblables, avec une précision proche de 50%. Nous allons maintenant terminer en comparant nos méthodes selon d'autres critères afin d'arrêter notre choix.
 
 ```{r,echo=FALSE}
-
-
-
-ggplot(m_glm_loo$pred, aes(m=yes, d=factor(obs, levels = c("yes", "no")))) + 
-  geom_line(m_glm_boot$pred)
+roc_glm_loo <- ggplot(m_glm_loo$pred, aes(m=yes, d=factor(obs, levels = c("yes", "no")))) + 
   geom_roc(n.cuts=0) + 
   coord_equal() +
-  style_roc()
+  style_roc()+
+  ggtitle("ROC Regression logistique avec Leave one out")
 
-
-
+roc_glm_loo + annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_glm_loo))$AUC, 4)))
 ```
 
+```{r,echo=FALSE}
+roc_glm_boot <- ggplot(m_glm_boot$pred, aes(m=yes, d=factor(obs, levels = c("yes", "no")))) + 
+  geom_roc(n.cuts=0) + 
+  coord_equal() +
+  style_roc()+
+  ggtitle("ROC Regression logistique avec Bootstrap")
+
+roc_glm_boot + annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_glm_boot))$AUC, 4)))
+```
+
+Dans l'ensemble, on peut supposer que l'AUC de la regression logistique est d'environ 0.55 .
+
+```{r,echo=FALSE}
+roc_svm_loo <- ggplot(m_svm_loo$pred, aes(m=yes, d=factor(obs, levels = c("yes", "no")))) + 
+  geom_roc(n.cuts=0) + 
+  coord_equal() +
+  style_roc()+
+  ggtitle("ROC SVM avec Leave one out")
+
+roc_glm_loo + annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_svm_loo))$AUC, 4)))
+```
+
+```{r,echo=FALSE}
+roc_svm_boot <- ggplot(m_svm_boot$pred, aes(m=yes, d=factor(obs, levels = c("yes", "no")))) + 
+  geom_roc(n.cuts=0) + 
+  coord_equal() +
+  style_roc()+
+  ggtitle("ROC SVM avec Bootstrap")
+
+roc_svm_boot + annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_svm_boot))$AUC, 4)))
+```
+
+Dans l'ensemble, on peut supposer que l'AUC du SVM est d'environ 0.48 . C'est moins qu'avec la regression logistique.
+
+```{r,echo=FALSE}
+roc_rf_loo <- ggplot(m_rf_loo$pred, aes(m=yes, d=factor(obs, levels = c("yes", "no")))) + 
+  geom_roc(n.cuts=0) + 
+  coord_equal() +
+  style_roc()+
+  ggtitle("ROC Random Forest avec Leave one out")
+
+roc_rf_loo + annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_rf_loo))$AUC, 4)))
+```
+
+```{r,echo=FALSE}
+roc_rf_boot <- ggplot(m_rf_boot$pred, aes(m=yes, d=factor(obs, levels = c("yes", "no")))) + 
+  geom_roc(n.cuts=0) + 
+  coord_equal() +
+  style_roc()+
+  ggtitle("ROC Regression logistique avec Leave one out")
+
+roc_rf_boot + annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_rf_boot))$AUC, 4)))
+```
+
+Dans l'ensemble, on peut supposer que l'AUC du random Forest est d'environ 0.43, c'est encore inférieur au SVM et à la regression logistique.
 
 # Conclusion
+
+BLABLA
+
+Concernant les modèles de prédictions, nous pouvons voir qu'avec nos données, il semble difficile d'établir un modèle convenable. Même si nous utilisons différentes méthodes pour la recherche de predicteur efficace, nous avons au final une précision faible dans tout les cas. Il semble alors pour le moment difficile de prédire l'amélioration de l'état de santé d'un individus via de programme en se basant seulement sur des informations physilogique avant expérience.
