@@ -25,6 +25,8 @@ library(randomForest)
 library(Metrics)
 library(MLmetrics)
 library(missForest)
+library(kableExtra)
+
 
 # Fonctions
 
@@ -105,8 +107,8 @@ Le but de cette étude est donc d'analyser l'influence  du programme sur le stre
 ```{r, echo=FALSE, results='hide',warning=FALSE}
 # Importation des données
 
-data_physio <- read_excel("./data/datas_physio_cbsm.xlsx",sheet=2)
-#data_physio <- read_excel("/Users/khadija/Desktop/Stage_HRV/CBSM cardio-data/Fichiers_CBSM_data_Excel/datas_physio_cbsm.xlsx",sheet=2)
+#data_physio <- read_excel("./data/datas_physio_cbsm.xlsx",sheet=2)
+data_physio <- read_excel("/Users/khadija/Desktop/Stage_HRV/CBSM cardio-data/Fichiers_CBSM_data_Excel/datas_physio_cbsm.xlsx",sheet=2)
 # Formattage des noms des colonnes
 
 # PHYSIO
@@ -205,13 +207,28 @@ Ainsi, nos objectifs sont donc les suivants :
 
 #### Imputation
 
-TODO
+L'imputation est le processus de remplacement des données manquantes par des valeurs substituées. Il existe plusieurs techniques d'imputations, le but est donc de les Comparer pour voir laquelle donne de meilleures résultats.
+Nous allons utiliser le package MICE (Mutivariate Imputation via Chained Equations) qui permet d'utiliser plusieurs techniques d'imputations pour traiter les données manquantes.
+Nous avons tout d'abord récupéré la partie du jeu de données sans les NA afin de recréer des valeurs manquantes artificiellement et de comparer plus tard les résultats des différentes méthodes d’imputations que nous allons effectuer sur le jeu de données. 
+
+5 techniques d’imputations ont été expérimentées:
+ *  Predictive mean matching(pmm):
+ *  la moyenne(mean): utilise la moyenne obtenue sans les valeurs manquantes et impute la même valeur à l’ensemble des valeurs manquantes
+ *  random forest(rf):
+ *  Random sample for observed values(sample):
+ *  Bayesian Linear Regression(norm): approche de la régression linéaire dans laquelle l’analyse statistique est entreprise dans le contexte de l’inférence bayésienne.
+ *  Classification and regression trees(cart):
+
+Le critère de comparaison est axé sur la minimisation des erreurs de prédiction le RMSE entre les valeurs prédites par les imputations et les valeurs réelles. 
+Et aussi en observant les statistiques descriptives avant et après les imputations.
+Le RMSE est la racine carrée du MSE qui mesure essentiellement l'erreur quadratique moyenne de nos prévisions. Pour chaque point, il calcule la différence carrée entre les prévisions et les vraies valeurs, puis fait la moyenne de ces valeurs.
+La meilleure technique est donc celle qui a les plus petits RMSE par variable.
 
 #### SVM
 
 Cette méthode sera utilisé dans le cadre de la recherche d'un modèle de prédiction.
 
-Les séparateurs à vaste marge sont des techniques d'apprentissage supervisé destinées à résoudre des problèmes de discimination et de regression. Le principe est de chercher une frontière entre nos groups qui maximisent la marge, c'est à dire la distance entre la frontière et les éléments les plus proches.
+Les séparateurs à vaste marge sont des techniques d'apprentissage supervisé destinées à résoudre des problèmes de discimination et de regression. Le principe est de chercher une frontière entre nos groupes qui maximisent la marge, c'est à dire la distance entre la frontière et les éléments les plus proches.
 
 #### Random Forest
 
@@ -280,11 +297,13 @@ En effet, sur les `r length(T0_indi_sp)` individus du jeu de données de départ
 
 # Imputation des données
 
-Notre but premier est de remplacer les valeurs extrêmes chez nos individus. Au départ notre population est dans le même état (pas de groupe particulier à l'intérieur <-- A VERIFIER SI LE TEMPS --!>), nous pouvons donc utiliser l'ensemble des données disponible pour réaliser une imputation de données sans trop de problème.
+Notre but premier est de remplacer les valeurs extrêmes et manquantes chez nos individus. Au départ notre population est dans le même état (pas de groupe particulier à l'intérieur <-- A VERIFIER SI LE TEMPS --!>), nous pouvons donc utiliser l'ensemble des données disponible pour réaliser une imputation de données sans trop de problème.
 
+#??????????????????????
 Nous allons exclure les données manquantes de l'imputation. Imputer les valeurs manquantes au temps T1 reviendrait à prédire l'amélioration ou non de l'état de santé des patients, ce qui est certe l'objectif, mais nous nous limitons à indiquer si oui ou non il y a amélioration, nous ne souhaitons pas prédire l'ensemble des valeurs physiologique. Nous risquons alors d'influencer de façon non négligeable nos données.
 
 Nous nous concentrerons donc seulement sur les valeurs abérantes
+#??????????????????????
 
 ## Imputation à T0
 
@@ -299,21 +318,26 @@ imput_T0<-cbind(data_physio[vec_na_T0==0,"Numéro HRV"],apply(data_physio[vec_na
 )
 ```
 
-  En T0, nous avons environ 81 observations et 10 variables avec 35 valeurs manquantes. Vu la taille de nos données, nous ne pouvons pas nous permettre de supprimer ces valeurs manquantes, donc nous allons procéder à une imputation.
+  A T0, nous avons environ 81 observations et 10 variables avec 35 valeurs manquantes. Vu la taille de nos données, nous ne pouvons pas nous permettre de supprimer ces valeurs manquantes, donc nous allons procéder à une imputation.
 
 ###Répartition des NA par variables
-Regardons le taux de valeurs abérantes pour chaque varialbe à T0:
-```{r}
+Regardons le taux de valeurs abérantes pour chaque variable à T0:
+```{r, echo=FALSE}
 imput_T0=imput_T0[,-1]
-sapply(imput_T0, function(x) sum(is.na(x)))
+a=cbind(sapply(imput_T0, function(x) (sum(is.na(x)))/length(imput_T0[,1])*100))
+colnames(a)="% NA"
+kable(a)
+a %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
 ```
 
 ```{r}
-
 #plot the missing values
 #nhanes_miss = aggr(imput_T0, col=mdc(1:2), numbers=TRUE, sortVars=TRUE, labels=names(imput_T0), cex.axis=.7, gap=3, ylab=c("Proportion of missingness","Missingness Pattern"))
 ```
-On observe que de manière générale, les variables n'ont pas un taux trop important de valeurs abérantes. Nous allons donc imputer l'ensemble des variables.
+On observe que de manière générale, les variables n'ont pas un taux trop important de valeurs abérantes. 
+
 Considérons notre tableau de données sans les NA, puis créons artificiellement et aléatoirement 5% de valeurs manquantes.
 ```{r}
 set.seed(10000)
@@ -324,30 +348,16 @@ tabb <- prodNA (tab, noNA = 0.05)
 
 ```
 
-Avant d'imputer, comparons tout d'abord plusieurs techniques d'imputations pour voir laquelle est la meilleure. Nous allons utiliser le package MICE.
-MICE (Mutivariate Imputation via Chained Equations) est un package qui permet d'utiliser plusieurs techniques d'imputations pour traiter les données manquantes.
-
-Pour notre imputation de données nous avions choisi de faire un premier test sur de différentes méthodes d’imputation sur le jeu de données. En première étape il s’agit de récupérer une partie du jeu de données assez complète afin de recréer des valeurs manquantes et de comparer plus tard les résultats des différentes méthodes d’imputations que nous allons effectuer sur le jeu de données. 
-
-La fonction MICE de la librairie mice qui renferme en elle différentes méthodes d’imputations nous servira pour ce test. De cette liste de fonction, 5 types d’imputations ont été expérimentées. Il s’agit de la Predictive mean matching PMM, la moyenne MEAN, random forest RF, Random sample for observed values SAMPLE et une dernière le Bayesian Linear Regression NORM.
-
-Le critère de comparaison est axé sur la minimisation des erreurs de prédiction le RMSE entre les valeurs prédites par les imputations et les valeurs réelles. 
-Et aussi en observant les statistiques descriptives avant et après les imputations.
-
-Pour le choix du meilleur modèle d’imputation, choisir celle qui minimise au mieux sur l’ensemble des 10 variables et aussi en gardant un oeil sur la variable RM_SSD.
-
+#############
 A la fin de ce test nous avons retenu 3 types d’imputations qui marchent le mieux. Le PMM et le Bayesian linear régression et la moyenne. Nous avions donc dégagé pour une première étape les trois méthodes qui seront choisies comme méthode à analyser.
 
-La régression linéaire bayésienne est une approche de la régression linéaire dans laquelle l’analyse statistique est entreprise dans le contexte de l’inférence bayésienne.
-
-La méthode de la moyenne utilise la moyenne obtenue sans les valeurs manquantes et les impute la même valeur à l’ensemble des valeurs manquantes
-
+Comparons tout d'abord plusieurs techniques d'imputations pour voir laquelle est la meilleure. 
 Par rapport aux méthodes standard basées sur la régression linéaire et la distribution normale, PMM produit des valeurs imputées qui ressemblent beaucoup plus à des valeurs réelles. Si la variable d'origine est asymétrique, les valeurs imputées seront également asymétriques. Si la variable d'origine est limitée par 0 et 100, les valeurs imputées seront également limitées par 0 et 100. Et si les valeurs réelles sont discrètes (comme le nombre d'enfants), les valeurs imputées seront également discrètes. En effet, les valeurs imputées sont des valeurs réelles qui sont «empruntées» à des individus disposant de données réelles. Elle fait donc moyenne des valeurs de ces observations qui le ressemblent.
-
+##############
 
 ###Méthode par la Moyenne (Mean)
 Nous avons utilisé 3 paramètres:
-- m= le nombre imputation par NA
+- m= le nombre imputation par NA (ici 1)
 - maxit= nombre d'itérations
 - method= méthode utilisée
 ```{r}
@@ -366,7 +376,6 @@ Après imputation, nous allons calculer le MAE, RMSE, et MAPE afin de voir l' ac
 
 ######### A COMPLETER DEFINITION ET FORMULES
 DEFINITION MAE MRMSE ET MAPE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-RMSE (Root Mean Squared Error) and MAE(Mean Absolute Error), represent two different measures of the model prediction error. The lower the RMSE and the MAE, the better the model. 
 Voici les résultats obtenus après imputation par la moyenne:
 #########
 
