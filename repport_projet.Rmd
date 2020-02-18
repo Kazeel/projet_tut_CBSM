@@ -15,9 +15,11 @@ set.seed(10000)
 #Importation packages
 
 library(readxl)
+library(ggplot2)
 library(mice)
 library(MASS)
 library(pROC)
+library(plotROC)
 library(caret)
 library(kernlab)
 
@@ -639,8 +641,9 @@ for (i in c(1:10)){
 ```
 
 
-###Comparaison des différentes méthodes d'imputations
-```{r}
+### Comparaison des différentes méthodes d'imputations
+
+```{r,echo=FALSE}
 R_mse<- cbind( R_pmm, R_mean, R_rf,R_sample,R_norm)
 R_compare<-cbind(R_mse, apply(R_mse, 1, min))
 R_compare
@@ -648,8 +651,9 @@ R_compare
 
 En faisant une analyse des cinq méthodologies d’imputations nous observons que les deux premières méthodes à savoir la regression linéaire bayesienne(norm) et le pmm minimise au mieux les variables. Mais pour en choisir qu'une à la fin nous analysons aussi les statistiques descriptives que fournissent ces données avant et après imputation et surtout pour la variable RMSSD en phase T1 qui servira plus tard pour la prédiction. 
 
-###Comparaison des statistiques descriptives des méthodes
-```{r}
+### Comparaison des statistiques descriptives des méthodes
+
+```{r,echo=FALSE}
 summary(T1P)
 summary(imput_T1P_norm)
 
@@ -662,7 +666,7 @@ Notre jeu de données sera imputée par la méthode de la moyenne prévisionnell
 
 ## Fichier final
 
-```{r cars}
+```{r}
 
 imput_T0<-cbind(data_physio[vec_na_T0==0,"Numéro HRV"],apply(data_physio[vec_na_T0==0,num_var_T0],2, FUN=function(x){
   need_replace<-!(cherche.ext(x))
@@ -715,6 +719,7 @@ final=cbind(NumeroHRV,final) #fichier qui combine les T0 et T1
 #merge_data<-merge(T0[T0$`NuméroHRV` %in% T1$`NuméroHRV`,-18],T1[,-18],by="NuméroHRV")
 merge_data=final
 merge_data$"progress"<-as.factor(ifelse(merge_data$T0_RMSSD_ms>merge_data$T1_RMSSD_ms,1,0))
+levels(merge_data$"progress")<-c("yes","no")
 
 merge_data <- merge_data[,-c(1,2)]
 
@@ -724,7 +729,7 @@ print(table(merge_data$progress)/nrow(merge_data))
 ```
 Nous avons 50% de progrès.
 
-#Boostrap: comparaison de moyenne
+# Boostrap: comparaison de moyenne
 
 A COMMENTER!!!!
 ```{r}
@@ -784,26 +789,25 @@ train_control <- trainControl(method = "LOOCV")
 
 ### Regression logistique
 
-Pas sûr de la méthode sans avoir un tet après.
+La première méthode que nous allons utiliser ici est la regression logistique descendante.
 
-```{r,echo=FALSE}
-m_glm<-train(progress~.,data = merge_data, method="glmStepAIC",trControl=train_control, trace=FALSE)
-#print(m_glm)
-print(m_glm)
+```{r,echo=FALSE,warning=FALSE}
+m_glm_loo<-train(progress~.,data = merge_data, method="glmStepAIC",trControl=train_control, trace=FALSE)
+print(m_glm_loo)
 ```
 ### SVM
 
-```{r, echo=FALSE}
+```{r,echo=FALSE,warning=FALSE}
 m_svm_loo <- train(progress ~., data = merge_data, method="svmLinear",trControl=train_control,tuneGrid=data.frame(C=c(0.05,0.1,1:18)))
 #print(m_svm_loo)
 plot(m_svm_loo,main="Modèle SVM")
 ```
 
-Avec le SVM, nous obtenons une très bonne accuracy (jusqu'à 90% selon l'hyper paramètre). C'est un excellent résultat dans notre cas.
+Avec le SVM, nous obtenons une très bonne accuracy (proche de 90% selon l'hyper paramètre). C'est un excellent résultat dans notre cas.
 
 ### randomForest
 
-```{r,echo=FALSE}
+```{r,echo=FALSE,warning=FALSE}
 m_rf_loo<-train(progress ~., data = merge_data, method="rf",trControl=train_control,tuneGrid=expand.grid(.mtry=c(2,3,6:10,12:21)))
 #print(m_rf)
 plot(m_rf_loo,main="Modèle RandomForest")
@@ -816,7 +820,7 @@ Optimiser la méthode de forêt aléatoire avec la validation croisée "Leave On
 Ici, nous allons utiliser une autre méthode, le bootstrap pour essayer de contourner notre problème de manque de donnée.
 
 
-```{r,echo=FALSE}
+```{r,echo=FALSE,warning=FALSE}
 train_control <- trainControl(method = "boot", number=100)
 ```
 
@@ -824,15 +828,15 @@ train_control <- trainControl(method = "boot", number=100)
 
 Pas sûr de la méthode sans avoir un tet après.
 
-```{r,echo=FALSE}
-m_glm<-train(progress~.,data = merge_data, method="glmStepAIC",trControl=train_control, trace=FALSE)
+```{r,echo=FALSE,warning=FALSE}
+m_glm_boot<-train(progress~.,data = merge_data, method="glmStepAIC",trControl=train_control, trace=FALSE)
 #print(m_glm)
-print(m_glm)
+print(m_glm_boot)
 ```
 
 ### SVM
 
-```{r,echo=FALSE}
+```{r,echo=FALSE,warning=FALSE}
 m_svm_boot <- train(progress ~., data = merge_data, method="svmLinear",trControl=train_control,tuneGrid=data.frame(C=c(0.05,0.1,1:18)))
 #print(m_svm)
 plot(m_svm_boot,main="Modèle SVM")
@@ -842,12 +846,23 @@ On observe ici que l'optimisation du paramètre C avec le bootstrap renvoie plus
 
 ### randomForest
 
-```{r,echo=FALSE}
+```{r,echo=FALSE,warning=FALSE}
 m_rf_boot<-train(progress ~., data = merge_data, method="rf",trControl=train_control,tuneGrid=expand.grid(.mtry=c(2,3,6:10,12:21)))
 #print(m_rf)
 plot(m_rf_boot,main="Modèle RandomForest")
 ```
 
 Même si l'aspect aléatoire de cette méthode rend encore difficile l'évaluation, l'utilisation du bootstrap permet néanmoins d'observer plus facilement une tendance : la diminution de la précision à mesure que l'on rajoute des variables.
+
+## Comparaisons
+
+```{r,echo=FALSE}
+
+
+plot(roc(predictor=predict(m_glm_loo,merge_data,type="prob")$yes,
+               response=merge_data$progress,
+               levels=rev(levels(merge_data$progress))))
+```
+
 
 # Conclusion
