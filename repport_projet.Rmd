@@ -77,7 +77,7 @@ Ainsi, l'objectif de ce document est d'étudier l'efficacité de ce programme au
 
 Une étude ultérieur ayant mis en valeur l'efficacité du programme concernant l'amélioration du stress perçu et de l'anxiété, nous cherchons ici à étudier l'efficacité du programme sur le stress ressenti.
 
-<--- DO TO COMPLETER AVEC CONCLUSION  ---!>
+
 
 Concernant les modèles de prédictions, nous pouvons voir qu'avec nos données, il semble difficile d'établir un modèle convenable. Même si nous utilisons différentes méthodes pour la recherche de predicteur efficace, nous avons au final une précision faible dans tout les cas. Il semble alors pour le moment difficile de prédire l'amélioration de l'état de santé d'un individus via de programme en se basant seulement sur des informations physilogique avant expérience.
 
@@ -208,11 +208,19 @@ Ainsi, nos objectifs sont donc les suivants :
 * Corriger les valeurs aberantes de certains patients
 * Déterminer un modèle de prédiction de l'amélioration de l'état d'un individu.
 
-### Méthodes pour l'analyse
+### Méthodes et critères pour l'analyse
 
-#### Imputation
+#### RMSE (Root Mean Squared Error)
 
-TODO
+Afin de comparer nos méthodes d'imputation, nous allons utiliser le RMSE ou l'erreur quadratique, il s'agit simplement de la racine carré de l'espérance des carrés de la différence entre estimation et valeure réelle.
+
+#### Predictive mean matching
+
+Parmis les méthodes d'imputation, si la plus classique est simplement d'utiliser la moyenne comme nouvelle valeur, il existe d'autres méthodes plus poussée. L'une d'entre elle est la predictive mean matching. Le principe est simplement de chercher l'individus complet le plus proche de l'individus à qui il manque une valeur puis de remplacer la valeur manquante par celle de l'individus proche. C'est une méthode assez populaire et qui se présente comme assez robuste.
+
+#### Bayesian Linear Model
+
+La régression linéaire bayésienne est une approche de la régression linéaire dans laquelle l’analyse statistique est entreprise dans le contexte de l’inférence bayésienne.
 
 #### Regression Logistique
 
@@ -291,11 +299,7 @@ En effet, sur les `r length(T0_indi_sp)` individus du jeu de données de départ
 
 # Imputation des données
 
-Notre but premier est de remplacer les valeurs extrêmes chez nos individus. Au départ notre population est dans le même état (pas de groupe particulier à l'intérieur <-- A VERIFIER SI LE TEMPS --!>), nous pouvons donc utiliser l'ensemble des données disponible pour réaliser une imputation de données sans trop de problème.
-
-Nous allons exclure les données manquantes de l'imputation. Imputer les valeurs manquantes au temps T1 reviendrait à prédire l'amélioration ou non de l'état de santé des patients, ce qui est certe l'objectif, mais nous nous limitons à indiquer si oui ou non il y a amélioration, nous ne souhaitons pas prédire l'ensemble des valeurs physiologique. Nous risquons alors d'influencer de façon non négligeable nos données.
-
-Nous nous concentrerons donc seulement sur les valeurs abérantes
+Notre but premier est de remplacer les valeurs extrêmes chez nos individus afin de conserver un maximum d'individus pour la suite de l'étude.
 
 ## Imputation à T0
 
@@ -313,6 +317,7 @@ imput_T0<-cbind(data_physio[vec_na_T0==0,"Numéro HRV"],apply(data_physio[vec_na
   En T0, nous avons environ 81 observations et 10 variables avec 35 valeurs manquantes. Vu la taille de nos données, nous ne pouvons pas nous permettre de supprimer ces valeurs manquantes, donc nous allons procéder à une imputation.
 
 ### Répartition des NA par variables
+
 Regardons le taux de valeurs abérantes pour chaque varialbe à T0:
 ```{r,echo=FALSE}
 imput_T0=imput_T0[,-1]
@@ -324,8 +329,11 @@ sapply(imput_T0, function(x) sum(is.na(x)))
 #plot the missing values
 #nhanes_miss = aggr(imput_T0, col=mdc(1:2), numbers=TRUE, sortVars=TRUE, labels=names(imput_T0), cex.axis=.7, gap=3, ylab=c("Proportion of missingness","Missingness Pattern"))
 ```
-On observe que de manière générale, les variables n'ont pas un taux trop important de valeurs abérantes. Nous allons donc imputer l'ensemble des variables.
-Considérons notre tableau de données sans les NA, puis créons artificiellement et aléatoirement 5% de valeurs manquantes.
+
+On observe que de manière générale, les variables n'ont pas un taux trop important de valeurs abérantes. Nous allons donc imputer l'ensemble des variables d'un seul coup.
+
+Nous avons plusieurs choix possible de méthode pour l'imputation. Pour les comparer, nous allons donc volontairement retirer des valeurs parmis les données connus.Considérons notre tableau de données sans les NA, puis créons artificiellement et aléatoirement 5% de valeurs manquantes.
+
 ```{r,echo=FALSE}
 set.seed(10000)
 #dim(imput_T0)
@@ -338,23 +346,15 @@ tabb <- prodNA (tab, noNA = 0.05)
 Avant d'imputer, comparons tout d'abord plusieurs techniques d'imputations pour voir laquelle est la meilleure. Nous allons utiliser le package MICE.
 MICE (Mutivariate Imputation via Chained Equations) est un package qui permet d'utiliser plusieurs techniques d'imputations pour traiter les données manquantes.
 
-Pour notre imputation de données nous avions choisi de faire un premier test sur de différentes méthodes d’imputation sur le jeu de données. En première étape il s’agit de récupérer une partie du jeu de données assez complète afin de recréer des valeurs manquantes et de comparer plus tard les résultats des différentes méthodes d’imputations que nous allons effectuer sur le jeu de données. 
+Ce package va nous permettre d'utiliser 5 méthodes d’imputations. Il s’agit de la Predictive mean matching PMM, la moyenne MEAN, random forest RF, Random sample for observed values SAMPLE et une dernière le Bayesian Linear Regression NORM.
 
-La fonction MICE de la librairie mice qui renferme en elle différentes méthodes d’imputations nous servira pour ce test. De cette liste de fonction, 5 types d’imputations ont été expérimentées. Il s’agit de la Predictive mean matching PMM, la moyenne MEAN, random forest RF, Random sample for observed values SAMPLE et une dernière le Bayesian Linear Regression NORM.
+Le critère de comparaison est axé sur la minimisation des erreurs de prédiction le RMSE entre les valeurs prédites par les imputations et les valeurs réelles. De plus en observant les statistiques descriptives avant et après les imputations, nous confirmerons de pas altérer de façon drastique nos données.
 
-Le critère de comparaison est axé sur la minimisation des erreurs de prédiction le RMSE entre les valeurs prédites par les imputations et les valeurs réelles. 
-Et aussi en observant les statistiques descriptives avant et après les imputations.
+Pour le choix du meilleur modèle d’imputation, choisir celle qui minimise au mieux sur l’ensemble des 10 variables et aussi en gardant un oeil sur la variable RMSSD, qui sera importante pour la suite (définition de l'amélioration de l'état physique d'un individus).
 
-Pour le choix du meilleur modèle d’imputation, choisir celle qui minimise au mieux sur l’ensemble des 10 variables et aussi en gardant un oeil sur la variable RM_SSD.
+Après quelques essaies, nous avons retenu 3 types d’imputations efficacent sur nos données. Le PMM et le Bayesian linear régression et la moyenne.
 
-A la fin de ce test nous avons retenu 3 types d’imputations qui marchent le mieux. Le PMM et le Bayesian linear régression et la moyenne. Nous avions donc dégagé pour une première étape les trois méthodes qui seront choisies comme méthode à analyser.
-
-La régression linéaire bayésienne est une approche de la régression linéaire dans laquelle l’analyse statistique est entreprise dans le contexte de l’inférence bayésienne.
-
-La méthode de la moyenne utilise la moyenne obtenue sans les valeurs manquantes et les impute la même valeur à l’ensemble des valeurs manquantes
-
-Par rapport aux méthodes standard basées sur la régression linéaire et la distribution normale, PMM produit des valeurs imputées qui ressemblent beaucoup plus à des valeurs réelles. Si la variable d'origine est asymétrique, les valeurs imputées seront également asymétriques. Si la variable d'origine est limitée par 0 et 100, les valeurs imputées seront également limitées par 0 et 100. Et si les valeurs réelles sont discrètes (comme le nombre d'enfants), les valeurs imputées seront également discrètes. En effet, les valeurs imputées sont des valeurs réelles qui sont «empruntées» à des individus disposant de données réelles. Elle fait donc moyenne des valeurs de ces observations qui le ressemblent.
-
+Par rapport aux méthodes standard basées sur la régression linéaire et la distribution normale, PMM produit des valeurs imputées qui ressemblent beaucoup plus à des valeurs réelles. Si la variable d'origine est asymétrique, les valeurs imputées seront également asymétriques. Si la variable d'origine est limitée par 0 et 100, les valeurs imputées seront également limitées par 0 et 100. Et si les valeurs réelles sont discrètes (comme le nombre d'enfants), les valeurs imputées seront également discrètes. En effet, les valeurs imputées sont des valeurs réelles qui sont «empruntées» à des individus disposant de données réelles.
 
 ### Méthode par la Moyenne (Mean)
 Nous avons utilisé 3 paramètres:
@@ -935,4 +935,6 @@ Dans l'ensemble, on peut supposer que l'AUC du random Forest est d'environ 0.43,
 
 BLABLA
 
-Concernant les modèles de prédictions, nous pouvons voir qu'avec nos données, il semble difficile d'établir un modèle convenable. Même si nous utilisons différentes méthodes pour la recherche de predicteur efficace, nous avons au final une précision faible dans tout les cas. Il semble alors pour le moment difficile de prédire l'amélioration de l'état de santé d'un individus via de programme en se basant seulement sur des informations physilogique avant expérience.
+Concernant les modèles de prédictions, nous pouvons voir qu'avec nos données, il semble difficile d'établir un modèle convenable. Même si nous utilisons différentes méthodes pour la recherche de predicteur efficace, nous avons au final une précision faible dans tout les cas. Il semble alors pour le moment difficile de prédire l'amélioration de l'état de santé d'un individus via le programme en se basant seulement sur des informations physilogique avant expérience.
+
+Enfin, pour conclure, il est a noté qu'il est possible que la méthode du RandomForest puisse renvoyer de meilleur prédiction. En effet, il suffirait d'inverser le modèle et nous aurions alors un modèle de prédiction avec une précision plus grande. Ainsi, on peut imaginer qu'avec beaucoup plus de données et surement d'itération, il est possible de voir apparaître un modèle acceptable. 
