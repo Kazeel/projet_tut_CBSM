@@ -1,8 +1,9 @@
 ---
 title: "Rapport du projet"
-author: "Aimé Cazeel"
-date: "3 février 2020"
+author: "AimÃ© Cazeel"
+date: "3 fÃ©vrier 2020"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
 ---
@@ -250,7 +251,7 @@ vec_na_T1<-apply(X = data_physio[,num_var_T1],MARGIN = 1, FUN = function(x){sum(
 vec_na_T0_T1<-apply(X = data_physio[,num_var_T0[1]:num_var_T1[length(num_var_T1)]],MARGIN = 1, FUN = function(x){sum(is.na(x))})
 ```
 
-En effet, sur les `r nrow(data_physio)` individus du jeu de données de départ, `r sum(vec_na_T0==17)` n'ont pas de valeurs à T0, `r sum(vec_na_T1==17)` n'ont pas de données à T1 et `r sum(vec_na_T0_T1==34)` n'ont pas de données à T0 et T1.
+En effet, sur les `r nrow(data_physio)` individus du jeu de données de départ, `r sum(vec_na_T0!=0)` n'ont pas de valeurs à T0, `r sum(vec_na_T1!=0)` n'ont pas de données à T1 et `r sum(vec_na_T0_T1!=0)` n'ont pas de données à T0 et T1.
 
 Si nous pouvons par la suite discuter de l'intérêt de conserver des individus à qui il manque des données à T0 ou T1, il semble relativement logique de ce débarasser des individus sans données à T0 et T1 (il s'agit des personnes présentent seulement au temps T2), qui seront sans intérêt dans notre cas.
 
@@ -417,7 +418,7 @@ Accuracy_pmm<-cbind (mae=mae_pmm, rmse=rmse_pmm, mape=mape_pmm)
 Accuracy_pmm
 ```
 
-###Méthode par Random Forest (rf)
+### Méthode par Random Forest (rf)
 
 ```{r}
 imputed_Data_rf <- mice(tabb, m=1, maxit = 5, method = 'rf', seed = 500)
@@ -442,7 +443,7 @@ Accuracy_rf<-cbind (mae=mae_rf, rmse=rmse_rf, mape=mape_rf)
 Accuracy_rf
 ```
 
-###Méthode par Classification and Regression trees (cart)
+### Méthode par Classification and Regression trees (cart)
 
 ```{r}
 imputed_Data_cart <- mice(tabb, m=1, maxit = 5, method = 'cart', seed = 500)
@@ -451,7 +452,7 @@ densityplot(imputed_Data_cart)
 
 ```
 
-```{r}
+```{r,echo=FALSE}
 imput_cart <- complete(imputed_Data_cart)
 mae_cart<-c()
 rmse_cart<-c()
@@ -466,14 +467,15 @@ Accuracy_cart<-cbind (mae=mae_cart, rmse=rmse_cart, mape=mape_cart)
 Accuracy_cart
 ```
 
-###Méthode par Bayesian linear regression  (norm)
-```{r}
+### Méthode par Bayesian linear regression
+
+```{r, echo=FALSE}
 imputed_Data_norm <- mice(tabb, m=1, maxit = 5, method = 'norm', seed = 500)
 summary(imputed_Data_norm)
 densityplot(imputed_Data_norm)
 ```
 
-```{r}
+```{r,echo=FALSE}
 imput_norm <- complete(imputed_Data_norm)
 
 mae_norm<-c()
@@ -490,8 +492,8 @@ Accuracy_norm
 
 ```
 
-###Comparaison des résultats
-```{r}
+### Comparaison des résultats
+```{r,echo=FALSE}
 
 AccurMAE=cbind.data.frame(Accuracy_mean[,1],Accuracy_pmm[,1],Accuracy_rf[,1],Accuracy_cart[,1],Accuracy_norm[,1])
 AccurRMSE=cbind.data.frame(Accuracy_mean[,2],Accuracy_pmm[,2],Accuracy_rf[,2],Accuracy_cart[,2],Accuracy_norm[,2])
@@ -522,8 +524,8 @@ geom_point()
 
 En faisant une analyse des cinq méthodologies d’imputations nous observons que les deux premières méthodes à savoir la regression linéaire bayesienne(norm) et le pmm minimise au mieux les variables. Mais pour en choisir qu'une à la fin nous analysons aussi les statistiques descriptives que fournissent ces données avant et après imputation et surtout pour la variable RMSSD en phase T1 qui servira plus tard pour la prédiction. 
 
-###Comparaison des statistiques descriptives des méthodes
-```{r}
+### Comparaison des statistiques descriptives des méthodes
+```{r,echo=FALSE}
 summary(tab)
 summary(imput_norm)
 
@@ -776,7 +778,7 @@ Avec moins d'une cinquantaine d'individus dans nos résultats finaux, nous déci
 
 Nous allons chercher ici à optimiser nos modèles via la validation croisée. La méthode de validation croisée Leave one out permet de faire des tests avec peu d'individus.
 
-```{r}
+```{r,echo=FALSE}
 train_control <- trainControl(method = "LOOCV")
 ```
 
@@ -801,7 +803,7 @@ Avec le SVM, nous obtenons une très bonne accuracy (jusqu'à 90% selon l'hyper 
 
 ### randomForest
 
-```{r}
+```{r,echo=FALSE}
 m_rf_loo<-train(progress ~., data = merge_data, method="rf",trControl=train_control,tuneGrid=expand.grid(.mtry=c(2,3,6:10,12:21)))
 #print(m_rf)
 plot(m_rf_loo,main="Modèle RandomForest")
@@ -840,7 +842,7 @@ On observe ici que l'optimisation du paramètre C avec le bootstrap renvoie plus
 
 ### randomForest
 
-```{r}
+```{r,echo=FALSE}
 m_rf_boot<-train(progress ~., data = merge_data, method="rf",trControl=train_control,tuneGrid=expand.grid(.mtry=c(2,3,6:10,12:21)))
 #print(m_rf)
 plot(m_rf_boot,main="Modèle RandomForest")
