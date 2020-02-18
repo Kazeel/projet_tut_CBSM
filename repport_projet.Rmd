@@ -16,6 +16,8 @@ set.seed(10000)
 
 library(readxl)
 library(ggplot2)
+library(grid)
+library(gridExtra)
 library(mice)
 library(MASS)
 library(pROC)
@@ -77,6 +79,8 @@ Une étude ultérieur ayant mis en valeur l'efficacité du programme concernant 
 
 <--- DO TO COMPLETER AVEC CONCLUSION  ---!>
 
+Concernant les modèles de prédictions, nous pouvons voir qu'avec nos données, il semble difficile d'établir un modèle convenable. Même si nous utilisons différentes méthodes pour la recherche de predicteur efficace, nous avons au final une précision faible dans tout les cas. Il semble alors pour le moment difficile de prédire l'amélioration de l'état de santé d'un individus via de programme en se basant seulement sur des informations physilogique avant expérience.
+
 \newpage
 
 # Introduction
@@ -105,7 +109,7 @@ Ce document fait suite au travail rédigé par Franck D'ALESSANDRO mettant en av
 
 Le but de cette étude est donc d'analyser l'influence  du programme sur le stress "physique" des patients (que l'on distinguera du stress perçu).
 
-```{r, echo=FALSE, results='hide',warning=FALSE}
+```{r, echo=FALSE, results='hide',warning=FALSE,message=FALSE}
 # Importation des données
 
 data_physio <- read_excel("./data/datas_physio_cbsm.xlsx",sheet=2)
@@ -210,6 +214,10 @@ Ainsi, nos objectifs sont donc les suivants :
 
 TODO
 
+#### Regression Logistique
+
+La régression logistique est un modèle de régression binomiale. Il s'agit d'un cas particulier du modèle de régression linéaire et est souvent utilisé en apprentissage automatisé. Elle se base sur le LOGIT et est estimé via le maximum de vraissemblance.
+
 #### SVM
 
 Cette méthode sera utilisé dans le cadre de la recherche d'un modèle de prédiction.
@@ -304,21 +312,21 @@ imput_T0<-cbind(data_physio[vec_na_T0==0,"Numéro HRV"],apply(data_physio[vec_na
 
   En T0, nous avons environ 81 observations et 10 variables avec 35 valeurs manquantes. Vu la taille de nos données, nous ne pouvons pas nous permettre de supprimer ces valeurs manquantes, donc nous allons procéder à une imputation.
 
-###Répartition des NA par variables
+### Répartition des NA par variables
 Regardons le taux de valeurs abérantes pour chaque varialbe à T0:
-```{r}
+```{r,echo=FALSE}
 imput_T0=imput_T0[,-1]
 sapply(imput_T0, function(x) sum(is.na(x)))
 ```
 
-```{r}
+```{r,echo=FALSE}
 
 #plot the missing values
 #nhanes_miss = aggr(imput_T0, col=mdc(1:2), numbers=TRUE, sortVars=TRUE, labels=names(imput_T0), cex.axis=.7, gap=3, ylab=c("Proportion of missingness","Missingness Pattern"))
 ```
 On observe que de manière générale, les variables n'ont pas un taux trop important de valeurs abérantes. Nous allons donc imputer l'ensemble des variables.
 Considérons notre tableau de données sans les NA, puis créons artificiellement et aléatoirement 5% de valeurs manquantes.
-```{r}
+```{r,echo=FALSE}
 set.seed(10000)
 #dim(imput_T0)
 #sum(is.na(imput_T0))
@@ -348,18 +356,18 @@ La méthode de la moyenne utilise la moyenne obtenue sans les valeurs manquantes
 Par rapport aux méthodes standard basées sur la régression linéaire et la distribution normale, PMM produit des valeurs imputées qui ressemblent beaucoup plus à des valeurs réelles. Si la variable d'origine est asymétrique, les valeurs imputées seront également asymétriques. Si la variable d'origine est limitée par 0 et 100, les valeurs imputées seront également limitées par 0 et 100. Et si les valeurs réelles sont discrètes (comme le nombre d'enfants), les valeurs imputées seront également discrètes. En effet, les valeurs imputées sont des valeurs réelles qui sont «empruntées» à des individus disposant de données réelles. Elle fait donc moyenne des valeurs de ces observations qui le ressemblent.
 
 
-###Méthode par la Moyenne (Mean)
+### Méthode par la Moyenne (Mean)
 Nous avons utilisé 3 paramètres:
 - m= le nombre imputation par NA
 - maxit= nombre d'itérations
 - method= méthode utilisée
-```{r}
+```{r,echo=FALSE}
 #dim(tab)
 imputed_Data_mean <- mice(tabb, m=1, maxit = 5, method = c('mean'), seed = 500)
 ```
 
 Voici un summary de l'imputation:
-```{r}
+```{r,echo=FALSE}
 summary(imputed_Data_mean)
 densityplot(imputed_Data_mean)
 ```
@@ -373,7 +381,7 @@ RMSE (Root Mean Squared Error) and MAE(Mean Absolute Error), represent two diffe
 Voici les résultats obtenus après imputation par la moyenne:
 #########
 
-```{r}
+```{r,echo=FALSE}
 imput_mean <- complete(imputed_Data_mean)
 
 mae_mean<-c()
@@ -395,9 +403,9 @@ Accuracy_mean
 ```
 
 
-###Méthode par Predictive Mean Matching (pmm)
+### Méthode par Predictive Mean Matching (pmm)
 pmm=? à definir
-```{r}
+```{r,echo=FALSE}
 imputed_Data_pmm <- mice(tabb, m=1, maxit = 5, method = 'pmm', seed = 500)
 summary(imputed_Data_pmm)
 densityplot(imputed_Data_pmm)
@@ -405,7 +413,7 @@ densityplot(imputed_Data_pmm)
 ```
 
 
-```{r}
+```{r,echo=FALSE}
 imput_pmm <- complete(imputed_Data_pmm)
 mae_pmm<-c()
 rmse_pmm<-c()
@@ -422,7 +430,7 @@ Accuracy_pmm
 
 ### Méthode par Random Forest (rf)
 
-```{r}
+```{r,echo=FALSE}
 imputed_Data_rf <- mice(tabb, m=1, maxit = 5, method = 'rf', seed = 500)
 summary(imputed_Data_rf)
 densityplot(imputed_Data_rf)
@@ -430,7 +438,7 @@ densityplot(imputed_Data_rf)
 ```
 
 
-```{r}
+```{r,echo=FALSE}
 imput_rf <- complete(imputed_Data_rf)
 mae_rf<-c()
 rmse_rf<-c()
@@ -447,7 +455,7 @@ Accuracy_rf
 
 ### Méthode par Classification and Regression trees (cart)
 
-```{r}
+```{r,echo=FALSE}
 imputed_Data_cart <- mice(tabb, m=1, maxit = 5, method = 'cart', seed = 500)
 summary(imputed_Data_cart)
 densityplot(imputed_Data_cart)
@@ -666,7 +674,7 @@ Notre jeu de données sera imputée par la méthode de la moyenne prévisionnell
 
 ## Fichier final
 
-```{r}
+```{r,echo=FALSE}
 
 imput_T0<-cbind(data_physio[vec_na_T0==0,"Numéro HRV"],apply(data_physio[vec_na_T0==0,num_var_T0],2, FUN=function(x){
   need_replace<-!(cherche.ext(x))
@@ -730,7 +738,7 @@ Nous avons 50% de progrès.
 # Boostrap: comparaison de moyenne
 
 A COMMENTER!!!!
-```{r}
+```{r,echo=FALSE}
 #H0:T0>T1
 
 x=T0$T0_RMSSD_ms
@@ -831,8 +839,6 @@ train_control <- trainControl(method = "boot", number=100,classProbs=T,savePredi
 
 ```{r,echo=FALSE,warning=FALSE}
 m_glm_boot<-train(progress~.,data = merge_data, method="glmStepAIC",trControl=train_control, trace=FALSE)
-print(m_glm_boot)
-m_glm_boot$finalModel
 ```
 
 La précision de notre modèle est d'environ `r m_glm_boot$results$Accuracy`, ce qui est légèrement meilleur qu'un modèle renvoyant toujours la même prédiction avec nos données. Les variables conservée sont les variables RMSSD, VLF, HF, Mean HR, STD RR. Les variables conservées sont principalement celles que l'on considère souvent comme assez importante dans la litterature scientifique. Parmis ce type de variable, seul LF a été écartée.
@@ -862,70 +868,65 @@ L'accuracy, qu'importe le nombre de variable, semble se stabiliser vers 50% ou m
 
 ## Comparaisons
 
-Nous avons vu que quelques soit les méthodes d'évaluation et de prédiction que nous utilisons, dans l'ensemble, nous obtenons souvent des résultats semblables, avec une précision proche de 50%. Nous allons maintenant terminer en comparant nos méthodes selon d'autres critères afin d'arrêter notre choix.
+Nous avons vu que quelques soit les méthodes d'évaluation et de prédiction que nous utilisons, dans l'ensemble, nous obtenons souvent des résultats semblables, avec une précision proche de 50%. Nous allons maintenant terminer en comparant nos méthodes selon d'autres critères afin d'arrêter notre choix. Pour cela, nous regardons les courbes ROC.
 
-```{r,echo=FALSE}
+```{r,echo=FALSE,warning=FALSE}
 roc_glm_loo <- ggplot(m_glm_loo$pred, aes(m=yes, d=factor(obs, levels = c("yes", "no")))) + 
   geom_roc(n.cuts=0) + 
   coord_equal() +
   style_roc()+
-  ggtitle("ROC Regression logistique avec Leave one out")
+  ggtitle("ROC GLM avec LOO")+
+  annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_glm_loo))$AUC, 4)))
 
-roc_glm_loo + annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_glm_loo))$AUC, 4)))
-```
-
-```{r,echo=FALSE}
 roc_glm_boot <- ggplot(m_glm_boot$pred, aes(m=yes, d=factor(obs, levels = c("yes", "no")))) + 
   geom_roc(n.cuts=0) + 
   coord_equal() +
   style_roc()+
-  ggtitle("ROC Regression logistique avec Bootstrap")
+  ggtitle("ROC GLM avec Bootstrap")+ 
+  annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_glm_boot))$AUC, 4)))
 
-roc_glm_boot + annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_glm_boot))$AUC, 4)))
+grid.arrange(roc_glm_loo,roc_glm_boot, nrow=1, ncol=2)
 ```
 
 Dans l'ensemble, on peut supposer que l'AUC de la regression logistique est d'environ 0.55 .
 
-```{r,echo=FALSE}
+```{r,echo=FALSE,warning=FALSE}
 roc_svm_loo <- ggplot(m_svm_loo$pred, aes(m=yes, d=factor(obs, levels = c("yes", "no")))) + 
   geom_roc(n.cuts=0) + 
   coord_equal() +
   style_roc()+
-  ggtitle("ROC SVM avec Leave one out")
+  ggtitle("ROC SVM avec Leave one out")+ 
+  annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_svm_loo))$AUC, 4)))
 
-roc_glm_loo + annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_svm_loo))$AUC, 4)))
-```
-
-```{r,echo=FALSE}
 roc_svm_boot <- ggplot(m_svm_boot$pred, aes(m=yes, d=factor(obs, levels = c("yes", "no")))) + 
   geom_roc(n.cuts=0) + 
   coord_equal() +
   style_roc()+
-  ggtitle("ROC SVM avec Bootstrap")
+  ggtitle("ROC SVM avec Bootstrap")+ 
+  annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_svm_boot))$AUC, 4)))
 
-roc_svm_boot + annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_svm_boot))$AUC, 4)))
+
+grid.arrange(roc_svm_loo,roc_svm_boot, nrow=1, ncol=2)
 ```
 
 Dans l'ensemble, on peut supposer que l'AUC du SVM est d'environ 0.48 . C'est moins qu'avec la regression logistique.
 
-```{r,echo=FALSE}
+```{r,echo=FALSE,warning=FALSE}
 roc_rf_loo <- ggplot(m_rf_loo$pred, aes(m=yes, d=factor(obs, levels = c("yes", "no")))) + 
   geom_roc(n.cuts=0) + 
   coord_equal() +
   style_roc()+
-  ggtitle("ROC Random Forest avec Leave one out")
+  ggtitle("ROC Random Forest avec LOO")+ 
+  annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_rf_loo))$AUC, 4)))
 
-roc_rf_loo + annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_rf_loo))$AUC, 4)))
-```
-
-```{r,echo=FALSE}
 roc_rf_boot <- ggplot(m_rf_boot$pred, aes(m=yes, d=factor(obs, levels = c("yes", "no")))) + 
   geom_roc(n.cuts=0) + 
   coord_equal() +
   style_roc()+
-  ggtitle("ROC Regression logistique avec Leave one out")
+  ggtitle("ROC Random Forest avec Bootstrap")+ 
+  annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_rf_boot))$AUC, 4)))
 
-roc_rf_boot + annotate("text", x=0.75, y=0.25, label=paste("AUC =", round((calc_auc(roc_rf_boot))$AUC, 4)))
+grid.arrange(roc_rf_loo,roc_rf_boot, nrow=1, ncol=2)
 ```
 
 Dans l'ensemble, on peut supposer que l'AUC du random Forest est d'environ 0.43, c'est encore inférieur au SVM et à la regression logistique.
