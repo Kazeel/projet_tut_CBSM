@@ -210,9 +210,11 @@ Ainsi, nos objectifs sont donc les suivants :
 
 ### Méthodes et critères pour l'analyse
 
-#### RMSE (Root Mean Squared Error)
+#### RMSE (Root Mean Squared Error), MAE (Mean Absolute Error) et MAPE (Mean Absolute Pourcentage Error)
 
 Afin de comparer nos méthodes d'imputation, nous allons utiliser le RMSE ou l'erreur quadratique, il s'agit simplement de la racine carré de l'espérance des carrés de la différence entre estimation et valeure réelle.
+
+Une autre mesure est le Mean absolute error qui est simplement la valeur absolue de la différence entre prediction et réalité. On peut aussi voir cette mesure selon le pourcentage d'erreur et on parlera alors de MAPE.
 
 #### Predictive mean matching
 
@@ -314,7 +316,7 @@ imput_T0<-cbind(data_physio[vec_na_T0==0,"Numéro HRV"],apply(data_physio[vec_na
 )
 ```
 
-  En T0, nous avons environ 81 observations et 10 variables avec 35 valeurs manquantes. Vu la taille de nos données, nous ne pouvons pas nous permettre de supprimer ces valeurs manquantes, donc nous allons procéder à une imputation.
+En T0, nous avons environ 81 observations et 10 variables avec 35 valeurs manquantes. Vu la taille de nos données, nous ne pouvons pas nous permettre de supprimer ces valeurs manquantes, donc nous allons procéder à une imputation.
 
 ### Répartition des NA par variables
 
@@ -357,10 +359,7 @@ Après quelques essaies, nous avons retenu 3 types d’imputations efficacent su
 Par rapport aux méthodes standard basées sur la régression linéaire et la distribution normale, PMM produit des valeurs imputées qui ressemblent beaucoup plus à des valeurs réelles. Si la variable d'origine est asymétrique, les valeurs imputées seront également asymétriques. Si la variable d'origine est limitée par 0 et 100, les valeurs imputées seront également limitées par 0 et 100. Et si les valeurs réelles sont discrètes (comme le nombre d'enfants), les valeurs imputées seront également discrètes. En effet, les valeurs imputées sont des valeurs réelles qui sont «empruntées» à des individus disposant de données réelles.
 
 ### Méthode par la Moyenne (Mean)
-Nous avons utilisé 3 paramètres:
-- m= le nombre imputation par NA
-- maxit= nombre d'itérations
-- method= méthode utilisée
+
 ```{r,echo=FALSE}
 #dim(tab)
 imputed_Data_mean <- mice(tabb, m=1, maxit = 5, method = c('mean'), seed = 500)
@@ -368,18 +367,14 @@ imputed_Data_mean <- mice(tabb, m=1, maxit = 5, method = c('mean'), seed = 500)
 
 Voici un summary de l'imputation:
 ```{r,echo=FALSE}
-summary(imputed_Data_mean)
+#summary(imputed_Data_mean) ILLISIBLE DANS LE RAPPORT
 densityplot(imputed_Data_mean)
 ```
 
 En regardant les fonctions de densité, nous remarquons que, pour la plupart des variables, les fonctions de densités des valeurs imputées(en rouge) sont assez différentes des vraies valeurs(en bleu).
 Après imputation, nous allons calculer le MAE, RMSE, et MAPE afin de voir l' accuracy de chaque méthode d'imputation.
 
-######### A COMPLETER DEFINITION ET FORMULES
-DEFINITION MAE MRMSE ET MAPE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-RMSE (Root Mean Squared Error) and MAE(Mean Absolute Error), represent two different measures of the model prediction error. The lower the RMSE and the MAE, the better the model. 
 Voici les résultats obtenus après imputation par la moyenne:
-#########
 
 ```{r,echo=FALSE}
 imput_mean <- complete(imputed_Data_mean)
@@ -457,12 +452,13 @@ Accuracy_rf
 
 ```{r,echo=FALSE}
 imputed_Data_cart <- mice(tabb, m=1, maxit = 5, method = 'cart', seed = 500)
-summary(imputed_Data_cart)
+#summary(imputed_Data_cart) ILLISIBLE DANS UN RAPPORT
 densityplot(imputed_Data_cart)
 
 ```
 
 ```{r,echo=FALSE}
+# KABLE ?!
 imput_cart <- complete(imputed_Data_cart)
 mae_cart<-c()
 rmse_cart<-c()
@@ -481,7 +477,7 @@ Accuracy_cart
 
 ```{r, echo=FALSE}
 imputed_Data_norm <- mice(tabb, m=1, maxit = 5, method = 'norm', seed = 500)
-summary(imputed_Data_norm)
+#summary(imputed_Data_norm) NO SUMMARY, ILLISIBLE DANS UN RAPPORT
 densityplot(imputed_Data_norm)
 ```
 
@@ -499,10 +495,11 @@ for (i in c(1:10)){
 }
 Accuracy_norm<-cbind (mae=mae_norm, rmse=rmse_norm, mape=mape_norm)
 Accuracy_norm
-
+# KABLE ?, C'EST QUOI LES LIGNES ?
 ```
 
 ### Comparaison des résultats
+
 ```{r,echo=FALSE}
 
 AccurMAE=cbind.data.frame(Accuracy_mean[,1],Accuracy_pmm[,1],Accuracy_rf[,1],Accuracy_cart[,1],Accuracy_norm[,1])
@@ -532,7 +529,7 @@ geom_point()
 
 ```
 
-En faisant une analyse des cinq méthodologies d’imputations nous observons que les deux premières méthodes à savoir la regression linéaire bayesienne(norm) et le pmm minimise au mieux les variables. Mais pour en choisir qu'une à la fin nous analysons aussi les statistiques descriptives que fournissent ces données avant et après imputation et surtout pour la variable RMSSD en phase T1 qui servira plus tard pour la prédiction. 
+En faisant une analyse des cinq méthodologies d’imputations nous observons que les deux premières méthodes à savoir la regression linéaire bayesienne(norm) et le pmm minimise au mieux les variables. Mais pour n'en choisir qu'une à la fin nous analysons aussi les statistiques descriptives que fournissent ces données avant et après imputation et surtout pour la variable RMSSD en phase T1 qui servira plus tard pour la prédiction. 
 
 ### Comparaison des statistiques descriptives des méthodes
 ```{r,echo=FALSE}
@@ -541,6 +538,7 @@ summary(imput_norm)
 
 summary(tab)
 summary(imput_pmm)
+# NO SUMMARY PLEASE :'(  OR KABLE ?!
 
 ```
 
@@ -558,7 +556,6 @@ imput_T1<-cbind(data_physio[vec_na_T1==0,"Numéro HRV"],apply(data_physio[vec_na
   return(xbis)})
 )
 ```
-
 
 ### Création des valeurs NA dans le jeu de données complet
 
