@@ -3,7 +3,12 @@ title: "Rapport du projet"
 author: "Aimé Cazeel, Khadidiatou AW, Kokou Sossou"
 date: "3 février 2020"
 output:
-  pdf_document: default
+  pdf_document:
+    toc: true
+    number_sections: true
+    df_print: kable
+    keep_tex: true
+    fig_caption: true
   html_document:
     df_print: paged
 ---
@@ -58,9 +63,11 @@ Ainsi, l'objectif de ce document est d'étudier l'efficacité de ce programme au
 
 Une étude ultérieur ayant mis en valeur l'efficacité du programme concernant l'amélioration du stress perçu et de l'anxiété, nous cherchons ici à étudier l'efficacité du programme sur le stress ressenti.
 
+Nous allons en premier lieu chercher à faire une imputation afin de conserver le maximum d'individus. En effet, à cause des codnitons de l'expérience, nous avons pu d'individus sans aucun problème.
 
+Nous avons pu voir que plusieurs méthodes été possible pour l'imputation. La taille de nos données ne fut finalement pas spécialement contraignante et nons avons pu renvoyer des résultats satisfaisant.
 
-Concernant les modèles de prédictions, nous pouvons voir qu'avec nos données, il semble difficile d'établir un modèle convenable. Même si nous utilisons différentes méthodes pour la recherche de predicteur efficace, nous avons au final une précision faible dans tout les cas. Il semble alors pour le moment difficile de prédire l'amélioration de l'état de santé d'un individus via de programme en se basant seulement sur des informations physilogique avant expérience.
+Puis nous allons chercher des modèles de prédictions afin de peut-être réaliser une selection des patients rejoignant le programme. Nous pourrons voir qu'avec nos données, il semble difficile d'établir un modèle convenable. Même si nous utilisons différentes méthodes pour la recherche de predicteur efficace, nous avons au final une précision faible dans tout les cas. Il semble alors pour le moment difficile de prédire l'amélioration de l'état de santé d'un individus via de programme en se basant seulement sur des informations physilogique avant expérience.
 
 \newpage
 
@@ -189,9 +196,9 @@ Ainsi, nos objectifs sont donc les suivants :
 * Corriger les valeurs aberantes de certains patients
 * Déterminer un modèle de prédiction de l'amélioration de l'état d'un individu.
 
-### Méthodes et critères pour l'analyse
+## Méthodes et critères pour l'analyse
 
-#### Imputation
+### Imputation
 
 L'imputation est le processus de remplacement des données manquantes par des valeurs substituées. Plusieurs techniques d’imputations existent.
 
@@ -207,19 +214,19 @@ Afin de pouvoir évaluer une méthode, on aura tendance par la suite à minimise
  
 On observera aussi les statistiques descriptives avant et après les imputations pour vérifier que nous n'avons pas trop altérer nos variables.
 
+### Modélisation
+
+Par la suite, nous cherchons à créer un modèle pour déterminer si une personne pratiquant le programme CBSM pourra observer une amélioration physique. Cela pourra permettre de trier à l'avance les personnes. Voici une liste non exhaustive des méthodes utilisées.
+
 #### Regression Logistique
 
 La régression logistique est un modèle de régression binomiale. Il s'agit d'un cas particulier du modèle de régression linéaire et est souvent utilisé en apprentissage automatisé. Elle se base sur le LOGIT et est estimé via le maximum de vraissemblance.
 
 #### SVM
 
-Cette méthode sera utilisé dans le cadre de la recherche d'un modèle de prédiction.
-
 Les séparateurs à vaste marge sont des techniques d'apprentissage supervisé destinées à résoudre des problèmes de discimination et de regression. Le principe est de chercher une frontière entre nos groups qui maximisent la marge, c'est à dire la distance entre la frontière et les éléments les plus proches.
 
 #### Random Forest
-
-Cette méthode sera utilisé dans le cadre de la recherche d'un modèle de prédiction 
 
 Les forêts d'arbres de décisions sont des méthodes d'apprentissage basées sur les concepts de bagging (ou bootstrap) et de sous-espaces aléatoire. Le principe est d'effectuer un apprentissage d'arbre de décision sur des sous-ensembles de données.
 
@@ -269,7 +276,7 @@ vec_na_T0<-apply(X = data_physio[,num_var_T0],MARGIN = 1, FUN = function(x){sum(
 vec_na_T1<-apply(X = data_physio[,num_var_T1],MARGIN = 1, FUN = function(x){sum(is.na(x))})
 ```
 
-Cela nous laisse alors avec `r nrow(data_physio)`, dont `r sum(vec_na_T0==17)` sans données à T0 et `r sum(vec_na_T1==17)` sans données à T1.
+Cela nous laisse alors avec `r nrow(data_physio)`, dont `r sum(vec_na_T0==10)` sans données à T0 et `r sum(vec_na_T1==10)` sans données à T1.
 
 ## Valeurs extrêmes
 
@@ -517,6 +524,9 @@ R_compare %>%
 #Scatter plot  des RMSE
 Accuracy<-cbind(Methods=c("Mean","pmm","rf","norm"),
                          rbind.data.frame(Accuracy_mean,Accuracy_pmm,Accuracy_rf,Accuracy_norm))
+```
+
+```{r, echo=FALSE, fig.width=10}
 
 ggplot(data=Accuracy, aes(x=Methods, y=rmse)) +
 geom_point()
@@ -527,7 +537,7 @@ En faisant une comparaison des quatre méthodologies d’imputations, nous remar
 
 ### Comparaison des statistiques descriptives des méthodes et de quelques variables pour les méthodes norm  et pmm
 
-_Données originales:_
+#### Données originales:
 
 ```{r, echo=FALSE}
 summary(tab[,1:5]) %>%
@@ -535,7 +545,7 @@ summary(tab[,1:5]) %>%
   kable_styling(bootstrap_options = "striped", full_width = F)
 ```
 
-_Données imputées par norm:_
+#### Données imputées par norm
 
 ```{r, echo=FALSE}
 summary(imput_norm[,1:5]) %>%
@@ -544,7 +554,15 @@ summary(imput_norm[,1:5]) %>%
 
 ```
 
-_Données imputées par pmm:_
+```{r, echo=FALSE, warning=FALSE, message=FALSE,fig.width=13}
+densityplot(imputed_Data_norm)
+```
+
+En bleu la densité réelle, en rouge la densité après imputation.
+
+Nous pouvons observer que la méthode norm renvoie une répartition similaire à la répartition d'origine pour la variable LF et potentiellement STD. Pour les autres variables ce n'est pas le cas, même si on observe bien des moyennes très proche.
+
+#### Données imputées par pmm
 
 ```{r, echo=FALSE}
 summary(imput_pmm[,1:5]) %>%
@@ -552,6 +570,14 @@ summary(imput_pmm[,1:5]) %>%
   kable_styling(bootstrap_options = "striped", full_width = F)
 
 ```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE,fig.width=13}
+densityplot(imputed_Data_pmm)
+```
+
+En bleu la densité réelle, en rouge la densité après imputation.
+
+Nous pouvons observer que la méthode renvoie une bonne répartition pour les variable RMSSD et LF mais ce n'est pas autant le cas avec les autres variables.
 
 En regardant les statistiques descriptives, nous remarquons que les valeurs de la méthode pmm se rapproche plus des vraies valeurs. D'autant plus que la méthode Norm nous a donné des valeurs négatives. Nous allons donc utiliser le pmm pour notre imputation.
 
@@ -713,6 +739,9 @@ R_compare %>%
 
 #Scatter plot  des RMSE
 #Scatter plot  des RMSE
+```
+
+```{r, echo=FALSE,fig.width=13}
 Accuracy1<-cbind(Methods=c("Mean","pmm","rf","norm"),
                          rbind.data.frame(RAccuracy_mean,RAccuracy_pmm,RAccuracy_rf,RAccuracy_norm))
 
@@ -756,7 +785,7 @@ summary(imput_T1P_pmm[,1:5]) %>%
 
 ```
 
-En regarder les statistiques descriptives, nous remarquons que les valeurs de la méthode pmm se rapproche plus des vraies valeurs. 
+En regarder les statistiques descriptives, nous remarquons que les valeurs de la méthode pmm se rapproche plus des vraies valeurs. Globalement, les résultats sont très proche de la réalité et même si parfois, l'estimation bayesienne donne de meilleur résultat, nous pouvons observer que la méthode pmm est dans l'ensemble plus efficace.
 
 _Conclusion_ : Notre jeu de données sera imputée par la méthode de la moyenne prévisionnelle qui donne de meilleurs résultats en T0 et T1.
 
@@ -818,7 +847,7 @@ En observant par exemple pour la variable RMSSD avant imputation et après imput
 
 ## Bootstrap: comparaison de moyennes
 
-Nous avons utilisé la méthode du Bootstrap pour voir s'il y a une amélioration de la condition physique chez les patients en faisant une comparaison de moyenne en T0 et T1 sur la variable RMSSD.
+Pour terminer nos analyses, nous souhaitons identifier de nouveau si il y a eu une amélioration général de l'état de santé des patients. Nous allons donc comparer les moyennes de notre échantillon. Au vu du faible de nombre de données, afin de parfaire nos estimations de la moyenne, nous avons utilisé la méthode du Bootstrap. Nous regardons surtout la variable RMSS qui est un bon indicaeur de cette amélioration.
 Nous avons donc tiré 200 échantillons, et pour chacun d'eux, avons calculé les moyennes en T0 et T1 et appliqué un Test de Wilcoxon sur ces moyennes obtenues. Nous avons donc comme hypothèses:
 
 * H0: T0>T1
@@ -933,7 +962,7 @@ La précision de notre modèle est d'environ `r m_glm_loo$results$Accuracy`, ce 
 
 ### SVM
 
-```{r,echo=FALSE,warning=FALSE}
+```{r,echo=FALSE,warning=FALSE, fig.width=10}
 m_svm_loo <- train(progress ~., data = merge_data, method="svmLinear",trControl=train_control,tuneGrid=data.frame(C=c(0.05,1:50)))
 #print(m_svm_loo)
 plot(m_svm_loo,main="Modèle SVM")
@@ -943,7 +972,7 @@ Le SVM ici a dans l'ensemble une accuracy proche ou inférieur à 50%. Vu nos do
 
 ### randomForest
 
-```{r,echo=FALSE,warning=FALSE}
+```{r,echo=FALSE,warning=FALSE, fig.width=10}
 m_rf_loo<-train(progress ~., data = merge_data, method="rf",trControl=train_control,tuneGrid=expand.grid(.mtry=c(2,3,6:10,12:50)))
 #print(m_rf)
 plot(m_rf_loo,main="Modèle RandomForest")
@@ -972,7 +1001,7 @@ Au final, on retrouve pratiquement le même résultat qu'avec le leave one out.
 
 ### SVM
 
-```{r,echo=FALSE,warning=FALSE}
+```{r,echo=FALSE,warning=FALSE, fig.width=10}
 m_svm_boot <- train(progress ~., data = merge_data, method="svmLinear",trControl=train_control,tuneGrid=data.frame(C=c(0.05,0.1,1:50)))
 #print(m_svm)
 plot(m_svm_boot,main="Modèle SVM")
@@ -982,7 +1011,7 @@ Le SVM ici a dans l'ensemble une accuracy proche ou inférieur à 50%. Vu nos do
 
 ### randomForest
 
-```{r,echo=FALSE,warning=FALSE}
+```{r,echo=FALSE,warning=FALSE, fig.width=10}
 m_rf_boot<-train(progress ~., data = merge_data, method="rf",trControl=train_control,tuneGrid=expand.grid(.mtry=c(2,3,6:10,12:50)))
 #print(m_rf)
 plot(m_rf_boot,main="Modèle RandomForest")
@@ -994,7 +1023,7 @@ L'accuracy, qu'importe le nombre de variable, semble se stabiliser vers 50% ou m
 
 Nous avons vu que quelques soit les méthodes d'évaluation et de prédiction que nous utilisons, dans l'ensemble, nous obtenons souvent des résultats semblables, avec une précision proche de 50%. Nous allons maintenant terminer en comparant nos méthodes selon d'autres critères afin d'arrêter notre choix. Pour cela, nous regardons les courbes ROC.
 
-```{r,echo=FALSE,warning=FALSE}
+```{r,echo=FALSE,warning=FALSE, fig.width=10}
 roc_glm_loo <- ggplot(m_glm_loo$pred, aes(m=yes, d=factor(obs, levels = c("yes", "no")))) + 
   geom_roc(n.cuts=0) + 
   coord_equal() +
@@ -1016,7 +1045,7 @@ grid.arrange(roc_glm_loo_f,roc_glm_boot_f, nrow=1, ncol=2)
 
 Dans l'ensemble, on peut supposer que l'AUC de la regression logistique est d'environ 0.55 .
 
-```{r,echo=FALSE,warning=FALSE}
+```{r,echo=FALSE,warning=FALSE, fig.width=10}
 roc_svm_loo <- ggplot(m_svm_loo$pred, aes(m=yes, d=factor(obs, levels = c("yes", "no")))) + 
   geom_roc(n.cuts=0) + 
   coord_equal() +
@@ -1038,7 +1067,7 @@ grid.arrange(roc_svm_loo_f,roc_svm_boot_f, nrow=1, ncol=2)
 
 Dans l'ensemble, on peut supposer que l'AUC du SVM est d'environ 0.48 . C'est moins qu'avec la regression logistique.
 
-```{r,echo=FALSE,warning=FALSE}
+```{r,echo=FALSE,warning=FALSE, fig.width=10}
 roc_rf_loo <- ggplot(m_rf_loo$pred, aes(m=yes, d=factor(obs, levels = c("yes", "no")))) + 
   geom_roc(n.cuts=0) + 
   coord_equal() +
@@ -1062,7 +1091,7 @@ Dans l'ensemble, on peut supposer que l'AUC du random Forest est d'environ 0.43,
 
 # Conclusion
 
-BLABLA
+Concernant l'imputation, nous avons pu voir que plusieurs méthodes été possible. La taille de nos données ne fut pas spécialement contraignante et nons avons pu renvoyer des résultats satisfaisant. En sachant que les relevés physiologique sont souvent soumis à des erreurs quand ils concernent des personnes après des problèmes cardiaques, nous pouvons aisement imaginer que l'imputation permettra de compenser cela dans des expériences futurs.
 
 Concernant les modèles de prédictions, nous pouvons voir qu'avec nos données, il semble difficile d'établir un modèle convenable. Même si nous utilisons différentes méthodes pour la recherche de predicteur efficace, nous avons au final une précision faible dans tout les cas. Il semble alors pour le moment difficile de prédire l'amélioration de l'état de santé d'un individus via le programme en se basant seulement sur des informations physilogique avant expérience.
 
