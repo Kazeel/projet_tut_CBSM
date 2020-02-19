@@ -1,7 +1,7 @@
 ---
 title: "Rapport du projet"
-author: "AimÃ© Cazeel"
-date: "3 fÃ©vrier 2020"
+author: "Aimé Cazeel, Khadidiatou AW, Kokou Sossou"
+date: "3 février 2020"
 output:
   pdf_document: default
   html_document:
@@ -42,27 +42,6 @@ cherche.ext<-function(x,taille=2){
   # on y rentre un vecteur de données
   # souvent on considère que ce qui s'écarte de 2 écart-type de la moyenne n'est pas normal
   # mais on va laisser le choix de la taille de cet intervalle (2 ou 3 sigma ?)
-}
-
-remplace.data<-function(x,random=TRUE,ligne=NA,colonne=NA,nombre=NA){
-  # permet de faire des trous dans un jeu de donnée
-  data<-x
-  
-  if (is.na(nombre)) {
-    nombre = floor(nrow(x)*ncol(x)*5/100)
-  }
-    
-  
-  if (random==TRUE) {
-    nombre = floor(nrow(x)*ncol(x)*5/100)
-    ligne<-sample(x = 1:nrow(x),size=nombre,replace = TRUE)
-    colonne<-sample(x = 1:ncol(x),size=nombre,replace = TRUE)
-  }
-  for (i in 1:lengthh(ligne)) {
-    data[ligne[i],colonne[i]]<-NA
-  }
-  
-  return(list("data"=data,"ligne"=ligne,"colonne"=colonne))
 }
 
 ```
@@ -210,19 +189,21 @@ Ainsi, nos objectifs sont donc les suivants :
 
 ### Méthodes et critères pour l'analyse
 
-#### RMSE (Root Mean Squared Error), MAE (Mean Absolute Error) et MAPE (Mean Absolute Pourcentage Error)
+#### Imputation
 
-Afin de comparer nos méthodes d'imputation, nous allons utiliser le RMSE ou l'erreur quadratique, il s'agit simplement de la racine carré de l'espérance des carrés de la différence entre estimation et valeure réelle.
+L'imputation est le processus de remplacement des données manquantes par des valeurs substituées. Plusieurs techniques d’imputations existent.
 
-Une autre mesure est le Mean absolute error qui est simplement la valeur absolue de la différence entre prediction et réalité. On peut aussi voir cette mesure selon le pourcentage d'erreur et on parlera alors de MAPE.
+ *  la moyenne(mean): remplace l'ensemble des valeurs manquantes d'une variable par la moyenne de cette variable.
+ *  Predictive mean matching(pmm): Le principe est simplement de chercher l'individus complet le plus proche de l'individus à qui il manque une valeur puis de remplacer la valeur manquante par celle de l'individus proche. C'est une méthode assez populaire et qui se présente comme assez robuste.
+ *  Bayesian Linear Regression(norm): approche de la régression linéaire dans laquelle l’analyse statistique est entreprise dans le contexte de l’inférence bayésienne.
+ *  random forest(rf): utilise le random forest pour imputer les valeurs manquantes
+ 
+Afin de pouvoir évaluer une méthode, on aura tendance par la suite à minimiser certains critères comme :
 
-#### Predictive mean matching
-
-Parmis les méthodes d'imputation, si la plus classique est simplement d'utiliser la moyenne comme nouvelle valeur, il existe d'autres méthodes plus poussée. L'une d'entre elle est la predictive mean matching. Le principe est simplement de chercher l'individus complet le plus proche de l'individus à qui il manque une valeur puis de remplacer la valeur manquante par celle de l'individus proche. C'est une méthode assez populaire et qui se présente comme assez robuste.
-
-#### Bayesian Linear Model
-
-La régression linéaire bayésienne est une approche de la régression linéaire dans laquelle l’analyse statistique est entreprise dans le contexte de l’inférence bayésienne.
+ * le RMSE (Root Mean Squared Error) ou l'erreur quadratique moyenne, il s'agit simplement de l'espérance de laa racine carré des carrés de la différence entre estimation et valeure réelle.
+ * le Mean absolute error qui est simplement la valeur absolue de la différence entre prediction et réalité. On peut aussi voir cette mesure selon le pourcentage d'erreur et on parlera alors de MAPE (Mean Absolute Pourcentage Error).
+ 
+On observera aussi les statistiques descriptives avant et après les imputations pour vérifier que nous n'avons pas trop altérer nos variables.
 
 #### Regression Logistique
 
@@ -301,7 +282,7 @@ En effet, sur les `r length(T0_indi_sp)` individus du jeu de données de départ
 
 # Imputation des données
 
-Notre but premier est de remplacer les valeurs extrêmes chez nos individus afin de conserver un maximum d'individus pour la suite de l'étude.
+Notre but premier est de remplacer les valeurs extrêmes chez nos individus afin de conserver un maximum d'individus pour la suite de l'étude. Pour cela, nous traitons nos données en 2 parties : nous allons premièrement imputer nos données à T0 avec l'ensemble de individus ayant des données à T0 puis nous allons imputer en T1 de la même façon.
 
 ## Imputation à T0
 
@@ -316,7 +297,7 @@ imput_T0<-cbind(data_physio[vec_na_T0==0,"Numéro HRV"],apply(data_physio[vec_na
 )
 ```
 
-En T0, nous avons environ 81 observations et 10 variables avec 35 valeurs manquantes. Vu la taille de nos données, nous ne pouvons pas nous permettre de supprimer ces valeurs manquantes, donc nous allons procéder à une imputation.
+A T0, nous avons environ `r nrow(imput_T0)` observations et `r ncol(imput_T0)-1` variables avec `r sum(is.na(imput_T0))` valeurs manquantes. Vu la taille de nos données, nous ne pouvons pas nous permettre de supprimer ces valeurs manquantes, donc nous allons procéder à une imputation.
 
 ### Répartition des NA par variables
 
