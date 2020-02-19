@@ -24,6 +24,8 @@ library(pROC)
 library(plotROC)
 library(caret)
 library(kernlab)
+library(dplyr)
+library(kableExtra)
 
 library(klaR)
 library(randomForest)
@@ -304,60 +306,57 @@ A T0, nous avons environ `r nrow(imput_T0)` observations et `r ncol(imput_T0)-1`
 Regardons le taux de valeurs abérantes pour chaque varialbe à T0:
 ```{r,echo=FALSE}
 imput_T0=imput_T0[,-1]
-sapply(imput_T0, function(x) sum(is.na(x)))
+a=cbind(sapply(imput_T0, function(x) (sum(is.na(x)))/length(imput_T0[,1])*100))  
+a=round(a,2)
+colnames(a)="% NA"
+
+a %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
 ```
 
 ```{r,echo=FALSE}
-
 #plot the missing values
 #nhanes_miss = aggr(imput_T0, col=mdc(1:2), numbers=TRUE, sortVars=TRUE, labels=names(imput_T0), cex.axis=.7, gap=3, ylab=c("Proportion of missingness","Missingness Pattern"))
 ```
 
-On observe que de manière générale, les variables n'ont pas un taux trop important de valeurs abérantes. Nous allons donc imputer l'ensemble des variables d'un seul coup.
+On observe que de manière générale, les variables n'ont pas un taux trop important de valeurs abérantes sauf deux variables (RMSSD et STD).
 
-Nous avons plusieurs choix possible de méthode pour l'imputation. Pour les comparer, nous allons donc volontairement retirer des valeurs parmis les données connus.Considérons notre tableau de données sans les NA, puis créons artificiellement et aléatoirement 5% de valeurs manquantes.
+Nous avons plusieurs choix possible de méthode pour l'imputation. Nous allons donc devoir comparer l'efficacité de ces méthodes sur nos données.
+
+### Comparaison des méthodes
+
+Pour les comparer, nous allons donc volontairement retirer des valeurs parmis les données connus.Considérons notre tableau de données sans les NA, puis créons artificiellement et aléatoirement 5% de valeurs manquantes.
 
 ```{r,echo=FALSE}
-set.seed(10000)
 #dim(imput_T0)
 #sum(is.na(imput_T0))
 tab=na.omit(imput_T0)
 tabb <- prodNA (tab, noNA = 0.05)
-
 ```
 
-Avant d'imputer, comparons tout d'abord plusieurs techniques d'imputations pour voir laquelle est la meilleure. Nous allons utiliser le package MICE.
-MICE (Mutivariate Imputation via Chained Equations) est un package qui permet d'utiliser plusieurs techniques d'imputations pour traiter les données manquantes.
+```{r, include=FALSE}
+###Méthode par la Moyenne (Mean)
 
-Ce package va nous permettre d'utiliser 5 méthodes d’imputations. Il s’agit de la Predictive mean matching PMM, la moyenne MEAN, random forest RF, Random sample for observed values SAMPLE et une dernière le Bayesian Linear Regression NORM.
-
-Le critère de comparaison est axé sur la minimisation des erreurs de prédiction le RMSE entre les valeurs prédites par les imputations et les valeurs réelles. De plus en observant les statistiques descriptives avant et après les imputations, nous confirmerons de pas altérer de façon drastique nos données.
-
-Pour le choix du meilleur modèle d’imputation, choisir celle qui minimise au mieux sur l’ensemble des 10 variables et aussi en gardant un oeil sur la variable RMSSD, qui sera importante pour la suite (définition de l'amélioration de l'état physique d'un individus).
-
-Après quelques essaies, nous avons retenu 3 types d’imputations efficacent sur nos données. Le PMM et le Bayesian linear régression et la moyenne.
-
-Par rapport aux méthodes standard basées sur la régression linéaire et la distribution normale, PMM produit des valeurs imputées qui ressemblent beaucoup plus à des valeurs réelles. Si la variable d'origine est asymétrique, les valeurs imputées seront également asymétriques. Si la variable d'origine est limitée par 0 et 100, les valeurs imputées seront également limitées par 0 et 100. Et si les valeurs réelles sont discrètes (comme le nombre d'enfants), les valeurs imputées seront également discrètes. En effet, les valeurs imputées sont des valeurs réelles qui sont «empruntées» à des individus disposant de données réelles.
-
-### Méthode par la Moyenne (Mean)
-
-```{r,echo=FALSE}
 #dim(tab)
 imputed_Data_mean <- mice(tabb, m=1, maxit = 5, method = c('mean'), seed = 500)
 ```
 
-Voici un summary de l'imputation:
-```{r,echo=FALSE}
-#summary(imputed_Data_mean) ILLISIBLE DANS LE RAPPORT
-densityplot(imputed_Data_mean)
+```{r, echo=FALSE}
+#Voici un summary de l'imputation:
+#kable(summary(imputed_Data_mean))
 ```
 
-En regardant les fonctions de densité, nous remarquons que, pour la plupart des variables, les fonctions de densités des valeurs imputées(en rouge) sont assez différentes des vraies valeurs(en bleu).
-Après imputation, nous allons calculer le MAE, RMSE, et MAPE afin de voir l' accuracy de chaque méthode d'imputation.
+```{r, echo=FALSE}
+#<u>__Fonctions de densité: Valeurs réelles vs valeurs imputées__</u>
 
-Voici les résultats obtenus après imputation par la moyenne:
+#densityplot(imputed_Data_mean)
 
-```{r,echo=FALSE}
+#En regardant les fonctions de densité, nous remarquons que, pour la plupart des variables, les fonctions de densités des valeurs imputées(en rouge) sont assez différentes des vraies valeurs(en bleu).
+#Après imputation, nous allons calculer le RMSE afin de voir l' accuracy de chaque méthode d'imputation.
+```
+
+```{r, include=FALSE}
 imput_mean <- complete(imputed_Data_mean)
 
 mae_mean<-c()
@@ -375,21 +374,19 @@ for (i in c(1:10)){
 
 }
 Accuracy_mean<-cbind (mae=mae_mean, rmse=rmse_mean, mape=mape_mean)
-Accuracy_mean
+#Accuracy_mean
 ```
 
+```{r, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+###Méthode par Predictive Mean Matching (pmm)
 
-### Méthode par Predictive Mean Matching (pmm)
-pmm=? à definir
-```{r,echo=FALSE}
 imputed_Data_pmm <- mice(tabb, m=1, maxit = 5, method = 'pmm', seed = 500)
-summary(imputed_Data_pmm)
-densityplot(imputed_Data_pmm)
+#summary(imputed_Data_pmm)
+#densityplot(imputed_Data_pmm)
 
 ```
 
-
-```{r,echo=FALSE}
+```{r, include=FALSE, warning=FALSE, message=FALSE}
 imput_pmm <- complete(imputed_Data_pmm)
 mae_pmm<-c()
 rmse_pmm<-c()
@@ -401,20 +398,19 @@ for (i in c(1:10)){
 
 }
 Accuracy_pmm<-cbind (mae=mae_pmm, rmse=rmse_pmm, mape=mape_pmm)
-Accuracy_pmm
+#Accuracy_pmm
 ```
 
-### Méthode par Random Forest (rf)
+```{r, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+###Méthode par Random Forest (rf)
 
-```{r,echo=FALSE}
 imputed_Data_rf <- mice(tabb, m=1, maxit = 5, method = 'rf', seed = 500)
-summary(imputed_Data_rf)
-densityplot(imputed_Data_rf)
+#summary(imputed_Data_rf)
+#densityplot(imputed_Data_rf)
 
 ```
 
-
-```{r,echo=FALSE}
+```{r, include=FALSE}
 imput_rf <- complete(imputed_Data_rf)
 mae_rf<-c()
 rmse_rf<-c()
@@ -426,20 +422,19 @@ for (i in c(1:10)){
 
 }
 Accuracy_rf<-cbind (mae=mae_rf, rmse=rmse_rf, mape=mape_rf)
-Accuracy_rf
+#Accuracy_rf
 ```
 
-### Méthode par Classification and Regression trees (cart)
+```{r, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+###Méthode par Classification and Regression trees (cart)
 
-```{r,echo=FALSE}
 imputed_Data_cart <- mice(tabb, m=1, maxit = 5, method = 'cart', seed = 500)
-#summary(imputed_Data_cart) ILLISIBLE DANS UN RAPPORT
-densityplot(imputed_Data_cart)
+#summary(imputed_Data_cart)
+#densityplot(imputed_Data_cart)
 
 ```
 
-```{r,echo=FALSE}
-# KABLE ?!
+```{r, include=FALSE}
 imput_cart <- complete(imputed_Data_cart)
 mae_cart<-c()
 rmse_cart<-c()
@@ -451,18 +446,18 @@ for (i in c(1:10)){
 
 }
 Accuracy_cart<-cbind (mae=mae_cart, rmse=rmse_cart, mape=mape_cart)
-Accuracy_cart
+#Accuracy_cart
 ```
 
-### Méthode par Bayesian linear regression
+```{r, include=FALSE, warning=FALSE, message=FALSE}
+###Méthode par Bayesian linear regression  (norm)
 
-```{r, echo=FALSE}
 imputed_Data_norm <- mice(tabb, m=1, maxit = 5, method = 'norm', seed = 500)
-#summary(imputed_Data_norm) NO SUMMARY, ILLISIBLE DANS UN RAPPORT
-densityplot(imputed_Data_norm)
+#summary(imputed_Data_norm)
+#densityplot(imputed_Data_norm)
 ```
 
-```{r,echo=FALSE}
+```{r, include=FALSE}
 imput_norm <- complete(imputed_Data_norm)
 
 mae_norm<-c()
@@ -475,25 +470,26 @@ for (i in c(1:10)){
 
 }
 Accuracy_norm<-cbind (mae=mae_norm, rmse=rmse_norm, mape=mape_norm)
-Accuracy_norm
-# KABLE ?, C'EST QUOI LES LIGNES ?
+#Accuracy_norm
 ```
 
-### Comparaison des résultats
+```{r, include=FALSE}
 
-```{r,echo=FALSE}
+AccurMAE=cbind.data.frame(Accuracy_mean[,1],Accuracy_pmm[,1],Accuracy_rf[,1],Accuracy_norm[,1])
+AccurRMSE=cbind.data.frame(Accuracy_mean[,2],Accuracy_pmm[,2],Accuracy_rf[,2],Accuracy_norm[,2])
+AccurMAPE=cbind.data.frame(Accuracy_mean[,3],Accuracy_pmm[,3],Accuracy_rf[,3],Accuracy_norm[,3])
 
-AccurMAE=cbind.data.frame(Accuracy_mean[,1],Accuracy_pmm[,1],Accuracy_rf[,1],Accuracy_cart[,1],Accuracy_norm[,1])
-AccurRMSE=cbind.data.frame(Accuracy_mean[,2],Accuracy_pmm[,2],Accuracy_rf[,2],Accuracy_cart[,2],Accuracy_norm[,2])
-AccurMAPE=cbind.data.frame(Accuracy_mean[,3],Accuracy_pmm[,3],Accuracy_rf[,3],Accuracy_cart[,3],Accuracy_norm[,3])
 
-AccurRMSE
+colnames(AccurRMSE)=c("mean","pmm","rf","norm");rownames(AccurRMSE)=colnames(imput_T0);
 
-Accuracy<-cbind(Methods=c("Mean","pmm","rf","cart","norm"),
-                         rbind.data.frame(Accuracy_mean,Accuracy_pmm,Accuracy_rf,
-                         Accuracy_cart,Accuracy_norm))
-library (ggplot2)
 
+
+#Scatter plot  des RMSE
+Accuracy<-cbind(Methods=c("Mean","pmm","rf","norm"),
+                         rbind.data.frame(Accuracy_mean,Accuracy_pmm,Accuracy_rf,Accuracy_norm))
+
+#ggplot(data=Accuracy, aes(x=Methods, y=rmse)) +
+#geom_point()
 
 #Scatter plot  des MASE
 #ggplot(data=Accuracy, aes(x=Methods, y=mape)) +
@@ -503,27 +499,63 @@ library (ggplot2)
 #ggplot(data=Accuracy, aes(x=Methods, y=mae)) +
 #geom_point()
 
-#Scatter plot  des RMSE
-ggplot(data=Accuracy, aes(x=Methods, y=rmse)) +
-geom_point()
+
 #A partir de ce graphique, nous voyons que ce sont les méthodes norm et pmm qui donnent les meilleures résultats.
 
 ```
 
-En faisant une analyse des cinq méthodologies d’imputations nous observons que les deux premières méthodes à savoir la regression linéaire bayesienne(norm) et le pmm minimise au mieux les variables. Mais pour n'en choisir qu'une à la fin nous analysons aussi les statistiques descriptives que fournissent ces données avant et après imputation et surtout pour la variable RMSSD en phase T1 qui servira plus tard pour la prédiction. 
+```{r, echo=FALSE}
+#### <u>__Comparaison des résultats__</u>
+BestRmse=apply(AccurRMSE, 1, min)
+R_compare<-cbind(AccurRMSE, BestRmse)
 
-### Comparaison des statistiques descriptives des méthodes
-```{r,echo=FALSE}
-summary(tab)
-summary(imput_norm)
 
-summary(tab)
-summary(imput_pmm)
-# NO SUMMARY PLEASE :'(  OR KABLE ?!
+R_compare %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+
+#Scatter plot  des RMSE
+Accuracy<-cbind(Methods=c("Mean","pmm","rf","norm"),
+                         rbind.data.frame(Accuracy_mean,Accuracy_pmm,Accuracy_rf,Accuracy_norm))
+
+ggplot(data=Accuracy, aes(x=Methods, y=rmse)) +
+geom_point()
 
 ```
 
-Nous allons donc imputer par le pmm!
+En faisant une comparaison des quatre méthodologies d’imputations, nous remarquons que les méthodes __norm__ et  __pmm__ minimisent au mieux les variables. Mais pour en choisir qu'une à la fin nous allons vérifier  les statistiques descriptives des données avant et après imputation et surtout pour la variable RMSSD en phase T1 qui servira plus tard pour la prédiction. 
+
+### Comparaison des statistiques descriptives des méthodes et de quelques variables pour les méthodes norm  et pmm
+
+_Données originales:_
+
+```{r, echo=FALSE}
+summary(tab[,1:5]) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+```
+
+_Données imputées par norm:_
+
+```{r, echo=FALSE}
+summary(imput_norm[,1:5]) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+
+```
+
+_Données imputées par pmm:_
+
+```{r, echo=FALSE}
+summary(imput_pmm[,1:5]) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+
+```
+
+En regardant les statistiques descriptives, nous remarquons que les valeurs de la méthode pmm se rapproche plus des vraies valeurs. D'autant plus que la méthode Norm nous a donné des valeurs négatives. Nous allons donc utiliser le pmm pour notre imputation.
+
+\newpage
 
 ## Imputation à T1
 
@@ -536,11 +568,35 @@ imput_T1<-cbind(data_physio[vec_na_T1==0,"Numéro HRV"],apply(data_physio[vec_na
   xbis[need_replace]<-NA
   return(xbis)})
 )
+head(imput_T1[,2:5]) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
 ```
 
-### Création des valeurs NA dans le jeu de données complet
+  A T1, nous avons environ `r nrow(imput_T1)` observations et `r ncol(imput_T1)-1` variables avec `r sum(is.na(imput_T1))` valeurs manquantes.
+
+### Répartition des NA par variables
+
+Regardons le taux de valeurs manquantes pour chaque variable à T1:
 
 ```{r, echo=FALSE}
+imput=imput_T1[,-1]
+b=cbind(sapply(imput, function(x) (sum(is.na(x)))/length(imput[,1])*100))  
+b=round(a,2)
+colnames(b)="% NA"
+
+b %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+```
+
+Vu la taille de nos données, nous pouvons dire que les taux de valeurs manquantes ne sont pas négligeables. 
+
+### Comparaison des résultats
+
+Considérons notre tableau de données sans les NA, puis créons artificiellement et aléatoirement 5% de valeurs manquantes. Nous obtenons ces résultats: 
+
+```{r, include=FALSE}
 
 T1_full<- na.omit(imput_T1[,-1])
 T1P<-T1_full
@@ -550,23 +606,28 @@ T1P<-T1_full
 
 T1_full<- prodNA(T1P, noNA = 0.05)
 ```
-Nous avons créer un jeu de données contenant des valeurs manquantes afin de tester plus tard avec les différentes méthodes d'imputations laquelle minimise les erreurs de prédictions
 
-### Les 5 différentes méthodes testées: (pmm, rf, sample, mean, norm)
-
-```{r, echo=FALSE}
-
-set.seed(10000)
+```{r, include=FALSE, warning=FALSE, message=FALSE}
+## pmm
 
 init_T1P = mice(T1_full ,maxit=5) 
 predM = init_T1P$predictorMatrix
 imputed_T1P <- mice(T1_full, method= c("pmm"), predictorMatrix=predM,maxit=5, m=1)
 imput_T1P_pmm <- complete(imputed_T1P)
 
-R_pmm<-c()
+R_pmmmae<-c()
+R_pmmrmse<-c()
+R_pmmmape<-c()
+
 for (i in c(1:10)){
-  R_pmm[i]<-round(RMSE(imput_T1P_pmm[,i],T1P[,i]),2)
+  R_pmmmae[i]<-round(mae(imput_T1P_pmm[,i],T1P[,i]),2)
+  R_pmmrmse[i]<-round(rmse(imput_T1P_pmm[,i],T1P[,i]),2)
+  R_pmmmape[i]<-round(mape(imput_T1P_pmm[,i],T1P[,i]),2)
 }
+RAccuracy_pmm<-cbind (mae=R_pmmmae, rmse=R_pmmrmse, mape=R_pmmmape)
+
+
+#
 
 ## Unconditional mean imputation (mean)
 
@@ -575,11 +636,18 @@ predM = init_T1P$predictorMatrix
 imputed_T1P <- mice(T1_full, method= c("mean"), predictorMatrix=predM,maxit=5, m=1)
 imput_T1P_mean <- complete(imputed_T1P)
 
-R_mean<-c()
+
+
+R_meanmae<-c()
+R_meanrmse<-c()
+R_meanmape<-c()
 
 for (i in c(1:10)){
-  R_mean[i]<-round(RMSE(imput_T1P_mean[,i],T1P[,i]),2)
+  R_meanmae[i]<-round(mae(imput_T1P_mean[,i],T1P[,i]),2)
+  R_meanrmse[i]<-round(rmse(imput_T1P_mean[,i],T1P[,i]),2)
+  R_meanmape[i]<-round(mape(imput_T1P_mean[,i],T1P[,i]),2)
 }
+RAccuracy_mean<-cbind (mae=R_pmmmae, rmse=R_pmmrmse, mape=R_pmmmape)
 
 
 # Random Forest
@@ -589,25 +657,17 @@ predM = init_T1P$predictorMatrix
 imputed_T1P <- mice(T1_full, method= c("rf"), predictorMatrix=predM,maxit=5, m=1)
 imput_T1P_rf <- complete(imputed_T1P)
 
-R_rf<-c()
+
+R_rfmae<-c()
+R_rfrmse<-c()
+R_rfmape<-c()
 
 for (i in c(1:10)){
-  R_rf[i]<-round(RMSE(imput_T1P_rf[,i],T1P[,i]),2)
+  R_rfmae[i]<-round(mae(imput_T1P_rf[,i],T1P[,i]),2)
+  R_rfrmse[i]<-round(rmse(imput_T1P_rf[,i],T1P[,i]),2)
+  R_rfmape[i]<-round(mape(imput_T1P_rf[,i],T1P[,i]),2)
 }
-
-
-# Random sample from observed values(sample)
-
-init_T1P = mice(T1_full ,maxit=5) 
-predM = init_T1P$predictorMatrix
-imputed_T1P <- mice(T1_full, method= c("sample"), predictorMatrix=predM,maxit=5, m=1)
-imput_T1P_sample <- complete(imputed_T1P)
-
-R_sample<-c()
-
-for (i in c(1:10)){
-  R_sample[i]<-round(RMSE(imput_T1P_sample[,i],T1P[,i]),2)
-}
+RAccuracy_rf<-cbind (mae=R_rfmae, rmse=R_rfrmse, mape=R_rfmape)
 
 
 # Bayesian linear regression (norm)
@@ -618,42 +678,90 @@ imputed_T1P <- mice(T1_full, method= c("norm"), predictorMatrix=predM,maxit=5, m
 imput_T1P_norm <- complete(imputed_T1P)
 
 
-R_norm<-c()
+R_normmae<-c()
+R_normrmse<-c()
+R_normmape<-c()
 
 for (i in c(1:10)){
-  R_norm[i]<-round(RMSE(imput_T1P_norm[,i],T1P[,i]),2)
+  R_normmae[i]<-round(mae(imput_T1P_norm[,i],T1P[,i]),2)
+  R_normrmse[i]<-round(rmse(imput_T1P_norm[,i],T1P[,i]),2)
+  R_normmape[i]<-round(mape(imput_T1P_norm[,i],T1P[,i]),2)
 }
+RAccuracy_norm<-cbind (mae=R_normmae, rmse=R_normrmse, mape=R_normmape)
 
 ```
 
+```{r, echo=FALSE}
+AccurMAE1=cbind.data.frame(RAccuracy_mean[,1],RAccuracy_pmm[,1],RAccuracy_rf[,1],RAccuracy_norm[,1])
+AccurRMSE1=cbind.data.frame(RAccuracy_mean[,2],RAccuracy_pmm[,2],RAccuracy_rf[,2],RAccuracy_norm[,2])
+AccurMAPE1=cbind.data.frame(RAccuracy_mean[,3],RAccuracy_pmm[,3],RAccuracy_rf[,3],RAccuracy_norm[,3])
 
-### Comparaison des différentes méthodes d'imputations
-
-```{r,echo=FALSE}
-R_mse<- cbind( R_pmm, R_mean, R_rf,R_sample,R_norm)
-R_compare<-cbind(R_mse, apply(R_mse, 1, min))
-R_compare
+colnames(AccurRMSE1)=c("mean","pmm","rf","norm");rownames(AccurRMSE1)=colnames(T1_full);
 ```
 
-En faisant une analyse des cinq méthodologies d’imputations nous observons que les deux premières méthodes à savoir la regression linéaire bayesienne(norm) et le pmm minimise au mieux les variables. Mais pour en choisir qu'une à la fin nous analysons aussi les statistiques descriptives que fournissent ces données avant et après imputation et surtout pour la variable RMSSD en phase T1 qui servira plus tard pour la prédiction. 
 
-### Comparaison des statistiques descriptives des méthodes
+```{r, echo=FALSE}
+R_mse<- cbind( R_pmmrmse, R_meanrmse, R_rfrmse,R_normrmse)
+BestRmse=apply(AccurRMSE1, 1, min)
+R_compare<-cbind(AccurRMSE1, BestRmse)
 
-```{r,echo=FALSE}
-summary(T1P)
-summary(imput_T1P_norm)
 
-summary(T1P)
-summary(imput_T1P_pmm)
+R_compare %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+
+
+#Scatter plot  des RMSE
+#Scatter plot  des RMSE
+Accuracy1<-cbind(Methods=c("Mean","pmm","rf","norm"),
+                         rbind.data.frame(RAccuracy_mean,RAccuracy_pmm,RAccuracy_rf,RAccuracy_norm))
+
+ggplot(data=Accuracy1, aes(x=Methods, y=rmse)) +
+geom_point()
+
+#R_mse[, which.min(R_mse)]
+
+
+#R_mse[which(min(R_mse),)]
+```
+
+Nous remarquons que les méthodes __norm__ et __pmm__ ont les RMSE les plus faibles et donnent donc de meilleurs résultats. Mais pour en choisir qu'une à la fin nous allons voir les statistiques descriptives des données avant et après imputation et surtout pour la variable RMSSD en phase T1 qui servira plus tard pour la prédiction. 
+
+
+### Comparaison des statistiques descriptives de quelques variables pour les méthodes norm et pmm
+
+_Données originales:_
+
+```{r, echo=FALSE}
+summary(T1P[,1:5]) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+```
+
+_Données imputées par norm:_
+
+```{r, echo=FALSE}
+summary(imput_T1P_norm[,1:5]) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
 
 ```
 
-Notre jeu de données sera imputée par la méthode de la moyenne prévisionnelle.
+_Données imputées par pmm:_
 
+```{r, echo=FALSE}
+summary(imput_T1P_pmm[,1:5]) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+
+```
+
+En regarder les statistiques descriptives, nous remarquons que les valeurs de la méthode pmm se rapproche plus des vraies valeurs. 
+
+_Conclusion_ : Notre jeu de données sera imputée par la méthode de la moyenne prévisionnelle qui donne de meilleurs résultats en T0 et T1.
+
+```{r, echo=FALSE}
 ## Fichier final
-
-```{r,echo=FALSE}
-
 imput_T0<-cbind(data_physio[vec_na_T0==0,"Numéro HRV"],apply(data_physio[vec_na_T0==0,num_var_T0],2, FUN=function(x){
   need_replace<-!(cherche.ext(x))
   xbis<-x
@@ -671,11 +779,16 @@ imput_T1<-cbind(data_physio[vec_na_T1==0,"Numéro HRV"],apply(data_physio[vec_na
 library(dplyr)
 pp=imput_T0 %>% inner_join(imput_T1, by = "Numéro HRV")
 ppp=pp[,-1]
+```
 
+ Pour la suite nous allons combiner nos données en T0 et T1 afin de créer nos modèles, nous nous retrouvons donc avec `r nrow(ppp)` observations et `r ncol(ppp)` colonnes.
+ 
+
+```{r, echo=FALSE, include=FALSE}
 #View(pp)
 
 imp_data <- mice(ppp, m=1, maxit = 5, method = 'pmm', seed = 500)
-densityplot(imp_data)
+#densityplot(imp_data)
 final <- complete(imp_data)
 NumeroHRV=pp[,1]
 final=cbind(NumeroHRV,final)
@@ -685,38 +798,39 @@ final=cbind(NumeroHRV,final)
 
 ### Comparaison avant et après imputation
 
-```{r, echo=FALSE}
-print("RMSSD Avant Imputation")
-summary(pp[,6])
-print("#####################################################################")
-print("#####################################################################")
-print("RMSSD Après Imputation")
-summary(final[,16])
-```
-En observant par exemple pour la variable RMSSD avant imputation et après imputation, nous obtenons une moyenne de 41,1 contre 39,9 précédemment, ce qui est acceptable par rapport à la methode utilisée et la troisième quartile qui varie de 42 à 43,82 , la médiane qui était de 26,5 passe à 27,4. Notre imputation n'a pas eu d'impact énorme sur notre jeu de données.
+_RMSSD Avant Imputation:_
 
-```{r,echo=FALSE}
+```{r, echo=FALSE}
+summary(pp[,c(6,16)]) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+```
+
+_RMSSD Après Imputation:_
+
+```{r, echo=FALSE}
+summary(final[,c(6,16)]) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+```
+
+En observant par exemple pour la variable RMSSD avant imputation et après imputation, nous obtenons une moyenne de 44.79 en T0 et 39.95 en T1 contre 44.67 en T0 et 40.34 , les valeurs sont donc assez similaires.
+
+## Bootstrap: comparaison de moyennes
+
+Nous avons utilisé la méthode du Bootstrap pour voir s'il y a une amélioration de la condition physique chez les patients en faisant une comparaison de moyenne en T0 et T1 sur la variable RMSSD.
+Nous avons donc tiré 200 échantillons, et pour chacun d'eux, avons calculé les moyennes en T0 et T1 et appliqué un Test de Wilcoxon sur ces moyennes obtenues. Nous avons donc comme hypothèses:
+
+* H0: T0>T1
+* H1: T0<T1
+
+```{r, echo=FALSE}
 T0=final[,c(1:11)]
 T1=final[,c(1,12:21)]
-final=cbind(NumeroHRV,final) #fichier qui combine les T0 et T1
-
-# => ENTREE : imput de T0 et imput de T1
-
-#merge_data<-merge(T0[T0$`NuméroHRV` %in% T1$`NuméroHRV`,-18],T1[,-18],by="NuméroHRV")
-merge_data=final
-merge_data$"progress"<-as.factor(ifelse(merge_data$T0_RMSSD_ms>merge_data$T1_RMSSD_ms,1,0))
-levels(merge_data$"progress")<-c("yes","no")
-
-print(table(merge_data$progress)/nrow(merge_data))
-
-# => SORTIE : données finale avec une colonne progress pour indiquer si oui ou non il y a progré
+final=cbind(NumeroHRV,final)
 ```
-Nous avons 50% de progrès.
 
-# Boostrap: comparaison de moyenne
-
-A COMMENTER!!!!
-```{r,echo=FALSE}
+```{r, echo=FALSE,warning=FALSE}
 #H0:T0>T1
 
 x=T0$T0_RMSSD_ms
@@ -743,18 +857,50 @@ M0[b]=mean(x1)
 M1[b]=mean(y1)
 }
 
-help("wilcox.test")
-print("pval")
-wilcox
-print("M0")
-M0
-print("M1")
-M1
+
+#print("pval")
+#wilcox
+#print("M0")
+#M0
+#print("M1")
+#M1
 pval_boot=mean(wilcox)
 M0_boot=mean(M0)
 M1_boot=mean(M1)
 
-print("pval"); pval_boot; print("M0"); M0_boot; print("M1"); M1_boot;
+#print("pval"); pval_boot; print("M0"); M0_boot; print("M1"); M1_boot;
+result=cbind(M0_boot,M1_boot,pval_boot)
+
+result %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+
+
+```
+Nous avons une p-value= `r pval_boot` qui est supérieure à 0.05, donc on conserve H0 au seuil de 5%; il y a bien une amélioration.
+
+```{r,echo=FALSE}
+T0=final[,c(1:11)]
+T1=final[,c(1,12:21)]
+final=cbind(NumeroHRV,final) #fichier qui combine les T0 et T1
+
+# => ENTREE : imput de T0 et imput de T1
+
+#merge_data<-merge(T0[T0$`NuméroHRV` %in% T1$`NuméroHRV`,-18],T1[,-18],by="NuméroHRV")
+merge_data=final
+merge_data$"progress"<-as.factor(ifelse(merge_data$T0_RMSSD_ms>merge_data$T1_RMSSD_ms,"yes","no"))
+
+merge_data <- merge_data[,-c(1,2)]
+
+prog=table(merge_data$progress)/nrow(merge_data)
+
+#prog %>%
+#  kable() %>%
+#  kable_styling(bootstrap_options = "striped", full_width = F)
+
+# => SORTIE : données finale avec une colonne progress pour indiquer si oui ou non il y a progré
+#Nous avons 50% de patients qui ont eu une amélioration de leur condition physique.
+
 ```
 
 # Construction de modèles
